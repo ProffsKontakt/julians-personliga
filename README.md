@@ -26,7 +26,15 @@ Kopiera `.env.example` till `.env.local`:
 | Variabel | Krävs för | Utan den |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | Kvittotolkning, marknadsbriefing | Manuell inmatning |
+| `ANTHROPIC_WORKSPACE_ID` | Bara om nyckeln saknar workspace | Se nedan |
 | `FINNHUB_API_KEY` | Automatisk kurshämtning | Kurser matas in för hand |
+
+**Fallgrop med Anthropic-nyckeln.** En nyckel skapad på *organisationsnivå*
+tillhör ingen workspace, och då avvisar Anthropic varje anrop med 400 och ber om
+huvudet `anthropic-workspace-id`. Två vägar ut: skapa en nyckel som är kopplad
+till en workspace, eller sätt `ANTHROPIC_WORKSPACE_ID` (Anthropic Console →
+Settings → Workspaces) så skickar appen huvudet åt dig. Appen känner igen det
+felet och säger vad som är fel i stället för att bara returnera 400.
 
 På Vercel läggs de under **Project → Settings → Environment Variables**.
 
