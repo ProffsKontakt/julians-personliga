@@ -38,7 +38,7 @@ export default function Shell({ title, subtitle, right, children }: ShellProps) 
           subtitle={subtitle}
           right={right}
           className="!bg-transparent"
-          bgClassName="!bg-black/35 backdrop-blur-2xl backdrop-saturate-150"
+          bgClassName="!bg-black/60 backdrop-blur-2xl backdrop-saturate-150"
           titleClassName="text-white"
           subtitleClassName="text-white/55"
         />
@@ -49,7 +49,7 @@ export default function Shell({ title, subtitle, right, children }: ShellProps) 
           labels
           icons
           className="fixed bottom-0 left-0 z-40"
-          colors={{ bgIos: '!bg-black/45' }}
+          colors={{ bgIos: '!bg-black/55' }}
           bgClassName="backdrop-blur-2xl backdrop-saturate-[180%] border-t-[0.5px] border-white/10"
         >
           {TABS.map(({ href, label, Icon }) => {

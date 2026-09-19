@@ -169,7 +169,8 @@ export function Row({
       )}
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[15px] text-white">{label}</span>
-        {sub && <span className="block truncate text-[12px] text-white/40">{sub}</span>}
+        {/* Radbryts hellre än kapas: kiloprisspannet är halva poängen. */}
+        {sub && <span className="block text-[12px] leading-snug text-white/40">{sub}</span>}
       </span>
       <span className="tnum shrink-0 text-[15px] font-medium text-white/85">{value}</span>
     </Tag>
