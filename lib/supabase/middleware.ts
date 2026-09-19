@@ -37,6 +37,21 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isOpen = OPEN_PATHS.some((p) => path === p || path.startsWith(p + '/'));
 
+  /*
+   * API-rutter får 401 med JSON, inte en omdirigering till inloggningssidan.
+   * En POST som 302:as följs vidare som GET och klienten får en HTML-sida
+   * tillbaka där den väntar sig JSON — ett fel som är svårt att förstå.
+   *
+   * Det här är också det enda som skyddar /api/receipt/parse och
+   * /api/kapital/brief, som båda kostar pengar per anrop.
+   */
+  if (!user && path.startsWith('/api/')) {
+    return NextResponse.json(
+      { error: 'ej_inloggad', message: 'Du måste vara inloggad för att använda den här rutten.' },
+      { status: 401 },
+    );
+  }
+
   if (!user && !isOpen) {
     const login = request.nextUrl.clone();
     login.pathname = '/login';
