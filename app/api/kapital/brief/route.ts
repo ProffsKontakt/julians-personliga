@@ -1,5 +1,6 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import { client, errorResponse, MODEL } from '@/lib/anthropic';
+import { requireUser } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -49,6 +50,9 @@ REGLER
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireUser();
+    if (!auth.ok) return auth.response;
+
     const body = (await request.json()) as BriefRequest;
 
     if (!Array.isArray(body.holdings) || body.holdings.length === 0) {

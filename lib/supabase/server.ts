@@ -36,3 +36,31 @@ export async function supabaseServer() {
     },
   });
 }
+
+/**
+ * Kräver en giltig session. Returnerar ett färdigt 401-svar om den saknas.
+ *
+ * Middleware stoppar redan anonyma anrop mot /api/, men de här rutterna
+ * kostar pengar per anrop. Att lita på ett enda lager för det är att göra
+ * en konfigurationsmiss till en faktura.
+ */
+export async function requireUser(): Promise<
+  { ok: true; userId: string } | { ok: false; response: Response }
+> {
+  const supabase = await supabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      ok: false,
+      response: Response.json(
+        { error: 'ej_inloggad', message: 'Du måste vara inloggad för att använda den här rutten.' },
+        { status: 401 },
+      ),
+    };
+  }
+
+  return { ok: true, userId: user.id };
+}

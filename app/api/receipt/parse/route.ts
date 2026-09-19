@@ -1,5 +1,6 @@
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { client, errorResponse, MODEL } from '@/lib/anthropic';
+import { requireUser } from '@/lib/supabase/server';
 import { ParsedReceiptSchema, RECEIPT_SYSTEM_PROMPT } from '@/lib/receipt-schema';
 
 export const runtime = 'nodejs';
@@ -14,6 +15,9 @@ const MAX_BASE64_LENGTH = 5_000_000;
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireUser();
+    if (!auth.ok) return auth.response;
+
     const body = (await request.json()) as {
       imageBase64?: string;
       mediaType?: string;
