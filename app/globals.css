@@ -1,0 +1,118 @@
+@import 'tailwindcss';
+@import 'konsta/react/theme.css';
+@plugin 'liquidglass-tailwind';
+
+/* Tailwind v4 måste se Konstas egna klasser för att inte skaka bort dem. */
+@source '../node_modules/konsta/react';
+
+@theme {
+  /* Konsta härleder hela sitt färgsystem (--k-color-*) ur denna. */
+  --color-brand-primary: #0a84ff;
+  --color-brand-green: #30d158;
+  --color-brand-red: #ff453a;
+  --color-brand-orange: #ff9f0a;
+  --color-brand-purple: #bf5af0;
+  --color-brand-teal: #40c8e0;
+
+  /* Ytor under glaset. Mörkt först — Liquid Glass lever på kontrast. */
+  --color-canvas: #000000;
+  --color-canvas-raised: #0c0c0f;
+
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter',
+    'Segoe UI', Roboto, system-ui, sans-serif;
+  /* Konsta har en egen stack för iOS-temat — håll dem i synk. */
+  --font-ios:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter',
+    'Segoe UI', Roboto, system-ui, sans-serif;
+
+  /* iOS 26 lutar åt generösa radier. */
+  --radius-ios: 1.25rem;
+  --radius-ios-lg: 1.75rem;
+}
+
+@layer base {
+  html {
+    /* Konstas <App>/<Page> är h-full/absolute — utan detta kollapsar de till 0. */
+    height: 100%;
+    background: var(--color-canvas);
+    color-scheme: dark;
+    /* Stoppar gummibandseffekten som annars avslöjar att det är en webbsida. */
+    overscroll-behavior-y: none;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    height: 100%;
+    /* Måste vara genomskinlig: .ambient ligger på -z-10 och skulle annars
+       målas bakom bodys egen bakgrund och aldrig synas. */
+    background: transparent;
+    margin: 0;
+    font-family: var(--font-sans);
+    color: rgb(255 255 255 / 0.92);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* iOS zoomar in på fokuserade fält under 16px. */
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+}
+
+/*
+ * Ambient bakgrund.
+ *
+ * Glas utan något bakom sig är bara en grå ruta. Den här mesh-gradienten
+ * ger blur och mättnad något att arbeta på, och rör sig långsamt så att
+ * ytorna känns levande utan att dra blicken.
+ */
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 60rem at 12% -10%, rgba(10, 132, 255, 0.35), transparent 60%),
+    radial-gradient(45rem 45rem at 95% 8%, rgba(191, 90, 240, 0.28), transparent 62%),
+    radial-gradient(50rem 50rem at 78% 96%, rgba(48, 209, 88, 0.2), transparent 60%),
+    radial-gradient(40rem 40rem at 5% 88%, rgba(255, 159, 10, 0.18), transparent 60%),
+    #000;
+  animation: ambient-drift 42s ease-in-out infinite alternate;
+}
+
+@keyframes ambient-drift {
+  0% {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  100% {
+    transform: scale(1.12) translate3d(-2%, -1.5%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient {
+    animation: none;
+  }
+}
+
+/*
+ * Konstas <Page> äger sin egen scroll. Den här klassen låter innehållet
+ * andas förbi hemindikatorn och den translucenta tabbaren.
+ */
+.page-pad {
+  padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Tabellsiffror som inte hoppar när värdet ändras. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* Diskret separator i glasytor — hårfin, aldrig en heldragen linje. */
+.hair-t {
+  border-top: 0.5px solid rgba(255, 255, 255, 0.12);
+}
