@@ -17,7 +17,7 @@ type View = 'portfolj' | 'exponering' | 'briefing';
 const ACCENTS = ['#0a84ff', '#bf5af0', '#26c185', '#fa6a22', '#40c8e0', '#ffd60a'];
 
 export default function KapitalPage() {
-  const { state, ready, update } = useStore();
+  const { state, ready, saveHolding, removeHolding, error: storeError } = useStore();
   const [view, setView] = useState<View>('portfolj');
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Holding | undefined>();
@@ -30,21 +30,9 @@ export default function KapitalPage() {
   );
   const warnings = useMemo(() => concentrationWarnings(holdings), [holdings]);
 
-  function saveHolding(holding: Holding) {
-    update((s) => {
-      const exists = s.holdings.some((h) => h.id === holding.id);
-      return {
-        ...s,
-        holdings: exists
-          ? s.holdings.map((h) => (h.id === holding.id ? holding : h))
-          : [...s.holdings, holding],
-      };
-    });
+  async function handleSave(holding: Holding) {
+    await saveHolding(holding);
     setEditing(undefined);
-  }
-
-  function removeHolding(id: string) {
-    update((s) => ({ ...s, holdings: s.holdings.filter((h) => h.id !== id) }));
   }
 
   return (
@@ -99,7 +87,7 @@ export default function KapitalPage() {
             setEditing(h);
             setFormOpen(true);
           }}
-          onRemove={removeHolding}
+          onRemove={(id) => void removeHolding(id)}
         />
       ) : view === 'exponering' ? (
         <Exposure holdings={holdings} />
@@ -115,7 +103,7 @@ export default function KapitalPage() {
           setFormOpen(false);
           setEditing(undefined);
         }}
-        onSave={saveHolding}
+        onSave={(h) => void handleSave(h)}
       />
     </Shell>
   );

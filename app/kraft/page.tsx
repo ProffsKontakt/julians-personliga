@@ -1,13 +1,13 @@
 'use client';
 
 import { Block, Button, Sheet } from 'konsta/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { LineChart, ColumnChart } from '@/components/charts';
 import { IconCheck, IconPlus, IconTrash } from '@/components/icons';
 import Shell from '@/components/Shell';
 import { EmptyState, GlassCard, Inset, Row, SectionTitle, StatTile, Tabs } from '@/components/ui';
 import { estimate1RM, progressFor, weeklyLoad, workoutVolume } from '@/lib/analytics';
-import { MUSCLE_LABELS, SEED_EXERCISES } from '@/lib/seed';
+import { MUSCLE_LABELS } from '@/lib/seed';
 import { useStore } from '@/lib/store';
 import type { Exercise, SetEntry, Workout, WorkoutExercise } from '@/lib/types';
 import { num, today, uid } from '@/lib/utils';
@@ -15,14 +15,8 @@ import { num, today, uid } from '@/lib/utils';
 type View = 'logga' | 'progression' | 'historik';
 
 export default function KraftPage() {
-  const { state, ready, update } = useStore();
+  const { state, ready, removeWorkout } = useStore();
   const [view, setView] = useState<View>('logga');
-
-  // Första besöket: lägg in grundbiblioteket så man kan logga direkt.
-  useEffect(() => {
-    if (!ready || state.exercises.length > 0) return;
-    update((s) => (s.exercises.length > 0 ? s : { ...s, exercises: SEED_EXERCISES }));
-  }, [ready, state.exercises.length, update]);
 
   const workouts = state.workouts;
   const weeks = useMemo(() => weeklyLoad(workouts), [workouts]);
@@ -59,9 +53,7 @@ export default function KraftPage() {
           exercises={state.exercises}
           weeks={weeks}
           lastVolume={last ? workoutVolume(last) : 0}
-          onRemove={(id) =>
-            update((s) => ({ ...s, workouts: s.workouts.filter((w) => w.id !== id) }))
-          }
+          onRemove={(id) => void removeWorkout(id)}
         />
       )}
     </Shell>
@@ -73,7 +65,7 @@ export default function KraftPage() {
 /* ------------------------------------------------------------------ */
 
 function Logger() {
-  const { state, update } = useStore();
+  const { state, addWorkout, addExercise, error: storeError } = useStore();
   const [name, setName] = useState('');
   const [entries, setEntries] = useState<WorkoutExercise[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -98,7 +90,7 @@ function Logger() {
     return undefined;
   }
 
-  function addExercise(exercise: Exercise) {
+  function addToWorkout(exercise: Exercise) {
     if (entries.some((e) => e.exerciseId === exercise.id)) return;
     const previous = lastTime(exercise.id);
     setEntries((prev) => [
@@ -161,16 +153,17 @@ function Logger() {
   const totalSets = entries.reduce((a, e) => a + e.sets.length, 0);
   const canSave = entries.length > 0 && entries.some((e) => e.sets.some((s) => s.reps > 0));
 
-  function save() {
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
     if (!canSave) return;
-    const workout: Workout = {
-      id: uid('w'),
+    setSaving(true);
+    await addWorkout({
       date: today(),
       name: name.trim() || 'Pass',
       exercises: entries,
-      createdAt: new Date().toISOString(),
-    };
-    update((s) => ({ ...s, workouts: [workout, ...s.workouts] }));
+    });
+    setSaving(false);
     setEntries([]);
     setName('');
     setSaved(true);
@@ -293,8 +286,8 @@ function Logger() {
             </span>
           </Button>
 
-          <Button large rounded onClick={save} disabled={!canSave}>
-            Spara passet
+          <Button large rounded onClick={() => void save()} disabled={!canSave || saving}>
+            {saving ? 'Sparar…' : 'Spara passet'}
           </Button>
         </div>
       )}
@@ -303,11 +296,12 @@ function Logger() {
         opened={pickerOpen}
         exercises={state.exercises}
         taken={entries.map((e) => e.exerciseId)}
-        onPick={addExercise}
+        onPick={addToWorkout}
         onClose={() => setPickerOpen(false)}
-        onCreate={(exercise) => {
-          update((s) => ({ ...s, exercises: [...s.exercises, exercise] }));
-          addExercise(exercise);
+        onCreate={async (namn) => {
+          // Övningen måste finnas i databasen innan ett set kan peka på den.
+          const created = await addExercise({ name: namn, muscle: 'helkropp' });
+          if (created) addToWorkout(created);
         }}
       />
     </Block>
@@ -370,7 +364,7 @@ function ExercisePicker({
   taken: string[];
   onPick: (e: Exercise) => void;
   onClose: () => void;
-  onCreate: (e: Exercise) => void;
+  onCreate: (namn: string) => void;
 }) {
   const [query, setQuery] = useState('');
 
@@ -400,7 +394,7 @@ function ExercisePicker({
             rounded
             className="mt-3"
             onClick={() => {
-              onCreate({ id: uid('ex'), name: query.trim(), muscle: 'helkropp' });
+              onCreate(query.trim());
               setQuery('');
             }}
           >

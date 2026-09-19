@@ -24,7 +24,7 @@ import { kr, monthLabel, num, uid } from '@/lib/utils';
 type View = 'oversikt' | 'varor' | 'kvitton';
 
 export default function KvittonPage() {
-  const { state, ready, update, putImage, deleteImage } = useStore();
+  const { state, ready, addReceipt, removeReceipt, uploadImage, error: storeError } = useStore();
   const [view, setView] = useState<View>('oversikt');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,8 +59,8 @@ export default function KvittonPage() {
         return;
       }
 
-      const imageKey = uid('img');
-      await putImage(imageKey, image.blob);
+      // Bilden laddas upp direkt; kvittot sparas först när du godkänt raderna.
+      const imageKey = await uploadImage(image.blob);
       setDraft({ parsed: payload.receipt as ParsedReceipt, imageKey });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Kunde inte läsa bilden.');
@@ -70,19 +70,18 @@ export default function KvittonPage() {
     }
   }
 
-  function commitDraft() {
+  async function commitDraft() {
     if (!draft) return;
     const { parsed, imageKey } = draft;
 
-    const receipt: Receipt = {
-      id: uid('r'),
+    setBusy(true);
+    await addReceipt({
       store: parsed.store || 'Okänd butik',
       purchasedAt: parsed.purchasedAt || new Date().toISOString().slice(0, 10),
       total: parsed.total,
       currency: 'SEK',
       source: 'llm',
       imageKey,
-      createdAt: new Date().toISOString(),
       note: parsed.warnings.length ? parsed.warnings.join(' · ') : undefined,
       items: parsed.items.map<ReceiptItem>((item) => ({
         id: uid('i'),
@@ -98,20 +97,16 @@ export default function KvittonPage() {
         discount: item.discount ?? undefined,
         confidence: item.confidence,
       })),
-    };
-
-    update((s) => ({ ...s, receipts: [receipt, ...s.receipts] }));
+    });
+    setBusy(false);
     setDraft(null);
   }
 
-  async function discardDraft() {
-    if (draft?.imageKey) await deleteImage(draft.imageKey);
+  function discardDraft() {
+    // Den uppladdade bilden blir kvar i storage. Det är ett medvetet val:
+    // hellre en föräldralös bild än ett raderingsanrop som kan misslyckas
+    // och lämna kvittot utan bild.
     setDraft(null);
-  }
-
-  function removeReceipt(receipt: Receipt) {
-    if (receipt.imageKey) void deleteImage(receipt.imageKey);
-    update((s) => ({ ...s, receipts: s.receipts.filter((r) => r.id !== receipt.id) }));
   }
 
   const draftSum = draft ? draft.parsed.items.reduce((a, i) => a + i.totalPrice, 0) : 0;
@@ -145,10 +140,10 @@ export default function KvittonPage() {
           </span>
         </Button>
 
-        {error && (
+        {(error ?? storeError) && (
           <GlassCard className="flex items-start gap-3" shine={false}>
             <IconWarning className="w-5 h-5 shrink-0 text-[#fa6a22]" />
-            <p className="text-[14px] leading-relaxed text-white/80">{error}</p>
+            <p className="text-[14px] leading-relaxed text-white/80">{error ?? storeError}</p>
           </GlassCard>
         )}
 
@@ -192,7 +187,7 @@ export default function KvittonPage() {
 
       <Sheet
         opened={draft !== null}
-        onBackdropClick={() => void discardDraft()}
+        onBackdropClick={discardDraft}
         className="max-h-[88vh] overflow-auto pb-safe"
       >
         {draft && (
@@ -253,10 +248,10 @@ export default function KvittonPage() {
             </ul>
 
             <div className="sticky bottom-0 -mx-4 mt-4 flex gap-2 border-t-[0.5px] border-white/10 bg-black/70 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
-              <Button rounded outline onClick={() => void discardDraft()} className="flex-1">
+              <Button rounded outline onClick={discardDraft} className="flex-1">
                 Kasta
               </Button>
-              <Button rounded onClick={commitDraft} className="flex-[2]">
+              <Button rounded onClick={() => void commitDraft()} disabled={busy} className="flex-[2]">
                 Spara {kr(draft.parsed.total)}
               </Button>
             </div>

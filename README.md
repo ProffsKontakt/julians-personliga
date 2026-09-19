@@ -25,6 +25,8 @@ Kopiera `.env.example` till `.env.local`:
 
 | Variabel | Krävs för | Utan den |
 |---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Allt — databas och inloggning | Appen startar inte |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Allt — databas och inloggning | Appen startar inte |
 | `ANTHROPIC_API_KEY` | Kvittotolkning, marknadsbriefing | Manuell inmatning |
 | `ANTHROPIC_WORKSPACE_ID` | Bara om nyckeln saknar workspace | Se nedan |
 | `FINNHUB_API_KEY` | Automatisk kurshämtning | Kurser matas in för hand |
@@ -78,18 +80,26 @@ mäts i reps i stället för 1RM, eftersom 1RM på noll kilo inte betyder någon
 
 ## Var datan bor
 
-**I webbläsarens IndexedDB.** Inget konto, ingen server, inget som lämnar enheten
-utom kvittobilden som skickas till Anthropic för tolkning.
+**Supabase (Postgres), region eu-north-1.** Inloggning sker med en engångslänk
+per mejl — inget lösenord att komma ihåg eller läcka.
 
-Det är ett medvetet första steg, men det har en konkret kostnad: byter du enhet,
-rensar webbläsardata eller kör i privat läge är hubben tom.
+Varje tabell har radnivåsäkerhet påslagen med `force row level security`, och en
+policy som låser raden till `auth.uid()`. Det innebär att den publika nyckeln i
+webbläsarbundlen inte kan läsa eller skriva någonting utan en giltig session.
+Verifierat mot det skarpa projektet: anonym läsning ger tomma listor, anonym
+skrivning avvisas med `42501 new row violates row-level security policy`.
 
-Migreringsvägen är förberedd. Hela lagret ligger bakom fyra funktioner i
-`lib/db.ts` (`loadState`, `saveState`, `putImage`, `getImage`). Byts de mot
-Supabase eller Postgres behöver ingen vy röras. `HubState.version` finns för att
-göra schemamigreringar möjliga när den dagen kommer.
+Därför behöver appen **ingen** secret- eller service-nyckel. Har man en sådan
+liggande i miljövariablerna är det en risk utan motsvarande nytta — den går
+förbi all radnivåsäkerhet.
 
----
+Kvittobilder ligger i en privat storage-bucket där sökvägen börjar med
+användarens id, och samma ägarregel gäller där. Bilderna nås bara via
+tidsbegränsade signerade länkar.
+
+Schemat ligger i `supabase/migrations/`. Lagret mot databasen är samlat i
+`lib/repo.ts`; vyerna pratar aldrig med Supabase direkt utan går via
+`useStore()`.
 
 ## Kodkarta
 
@@ -110,8 +120,9 @@ components/
   icons.tsx             Streckikoner i SF Symbols-anda
 lib/
   types.ts              Domänmodellen
-  db.ts                 IndexedDB-fasaden
-  store.tsx             React-context ovanpå db.ts
+  repo.ts               Alla Supabase-anrop och kartläggning mot domänmodellen
+  supabase/             Klienter för webbläsare, server och middleware
+  store.tsx             React-context ovanpå repo.ts
   analytics.ts          All härledd data — mat, kapital, träning
   receipt-schema.ts     Zod-schema + prompten för kvittotolkning
   food.ts               Kategorier, färger, satsa/skär ner-indelning
@@ -156,7 +167,9 @@ npm run typecheck  # tsc --noEmit
 
 ## Kända begränsningar
 
-- **Lagringen är lokal per webbläsare.** Ingen synk mellan enheter. Se ovan.
+- **Supabase Auth måste känna till adressen.** Site URL och tillåtna
+  redirect-URL:er sätts i Supabase under Authentication → URL Configuration.
+  Stämmer de inte fungerar inte inloggningslänken.
 - **Finnhubs gratisnivå täcker i praktiken bara amerikanska aktier.** Nordiska
   tickers och svenska fonder faller igenom och hamnar i `failed`-listan;
   appen visar då anskaffningsvärde och säger att kursen saknas.
