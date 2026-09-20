@@ -4,7 +4,9 @@ import { SEED_EXERCISES } from './seed';
 import {
   EMPTY_STATE,
   type CashFlow,
+  type Deal,
   type Exercise,
+  type FixedCost,
   type Holding,
   type HubState,
   type Receipt,
@@ -29,13 +31,16 @@ const maybe = (v: unknown): number | undefined =>
 /* ------------------------------------------------------------------ */
 
 export async function loadAll(db: Db, userId: string): Promise<HubState> {
-  const [receipts, holdings, cashflows, exercises, workouts] = await Promise.all([
-    loadReceipts(db),
-    db.from('holdings').select('*').order('created_at', { ascending: false }),
-    db.from('cashflows').select('*').order('date', { ascending: false }),
-    db.from('exercises').select('*').order('name'),
-    loadWorkouts(db),
-  ]);
+  const [receipts, holdings, cashflows, exercises, workouts, deals, fixedCosts] =
+    await Promise.all([
+      loadReceipts(db),
+      db.from('holdings').select('*').order('created_at', { ascending: false }),
+      db.from('cashflows').select('*').order('date', { ascending: false }),
+      db.from('exercises').select('*').order('name'),
+      loadWorkouts(db),
+      db.from('deals').select('*').order('oppnad', { ascending: false }),
+      db.from('fixed_costs').select('*').order('manad', { ascending: false }),
+    ]);
 
   const exerciseRows = exercises.data ?? [];
 
@@ -91,6 +96,29 @@ export async function loadAll(db: Db, userId: string): Promise<HubState> {
       bodyweight: e.bodyweight,
     })),
     workouts,
+    deals: (deals.data ?? []).map((d) => ({
+      id: d.id,
+      kund: d.kund,
+      titel: d.titel,
+      status: d.status,
+      varde: n(d.varde),
+      rorligKostnad: n(d.rorlig_kostnad),
+      // maybe(), inte n(): 0 % sannolikhet och "aldrig satt" är olika saker.
+      sannolikhet: maybe(d.sannolikhet),
+      oppnad: d.oppnad,
+      stangd: d.stangd ?? undefined,
+      kalla: d.kalla ?? undefined,
+      note: d.note ?? undefined,
+      createdAt: d.created_at,
+    })),
+    fixedCosts: (fixedCosts.data ?? []).map((c) => ({
+      id: c.id,
+      manad: c.manad,
+      kategori: c.kategori,
+      belopp: n(c.belopp),
+      note: c.note ?? undefined,
+      createdAt: c.created_at,
+    })),
   };
 }
 
@@ -377,6 +405,61 @@ export async function receiptImageUrl(db: Db, path: string): Promise<string | nu
 
 export async function deleteReceiptImage(db: Db, path: string): Promise<void> {
   await db.storage.from(BUCKET).remove([path]);
+}
+
+/* ------------------------------------------------------------------ */
+/* Företag                                                             */
+/* ------------------------------------------------------------------ */
+
+export async function upsertDeal(db: Db, userId: string, d: Deal): Promise<void> {
+  const row = {
+    user_id: userId,
+    kund: d.kund,
+    titel: d.titel,
+    status: d.status,
+    varde: d.varde,
+    rorlig_kostnad: d.rorligKostnad,
+    sannolikhet: d.sannolikhet ?? null,
+    oppnad: d.oppnad,
+    // Databasen har ett villkor som kopplar stangd till status. Vi skickar
+    // null för öppna affärer i stället för att låta ett gammalt datum ligga
+    // kvar när en affär öppnas igen.
+    stangd: d.stangd ?? null,
+    kalla: d.kalla ?? null,
+    note: d.note ?? null,
+  };
+
+  const { error } = isUuid(d.id)
+    ? await db.from('deals').update(row).eq('id', d.id)
+    : await db.from('deals').insert(row);
+
+  check(error, 'Kunde inte spara affären');
+}
+
+export async function deleteDeal(db: Db, id: string): Promise<void> {
+  const { error } = await db.from('deals').delete().eq('id', id);
+  check(error, 'Kunde inte ta bort affären');
+}
+
+export async function upsertFixedCost(db: Db, userId: string, c: FixedCost): Promise<void> {
+  const row = {
+    user_id: userId,
+    manad: c.manad,
+    kategori: c.kategori,
+    belopp: c.belopp,
+    note: c.note ?? null,
+  };
+
+  const { error } = isUuid(c.id)
+    ? await db.from('fixed_costs').update(row).eq('id', c.id)
+    : await db.from('fixed_costs').insert(row);
+
+  check(error, 'Kunde inte spara kostnaden');
+}
+
+export async function deleteFixedCost(db: Db, id: string): Promise<void> {
+  const { error } = await db.from('fixed_costs').delete().eq('id', id);
+  check(error, 'Kunde inte ta bort kostnaden');
 }
 
 function isUuid(value: string): boolean {

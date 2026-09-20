@@ -132,7 +132,7 @@ export default function KvittonPage() {
           rounded
           onClick={() => fileInput.current?.click()}
           disabled={busy}
-          className="k-color-brand-primary"
+          className="btn-tron"
         >
           <span className="flex items-center gap-2">
             {busy ? <IconSparkle className="w-5 h-5 animate-pulse" /> : <IconCamera className="w-5 h-5" />}
@@ -141,8 +141,8 @@ export default function KvittonPage() {
         </Button>
 
         {(error ?? storeError) && (
-          <GlassCard className="flex items-start gap-3" shine={false}>
-            <IconWarning className="w-5 h-5 shrink-0 text-[#fa6a22]" />
+          <GlassCard className="flex items-start gap-3">
+            <IconWarning className="w-5 h-5 shrink-0 text-[#ff6b4a]" />
             <p className="text-[14px] leading-relaxed text-white/80">{error ?? storeError}</p>
           </GlassCard>
         )}
@@ -194,14 +194,14 @@ export default function KvittonPage() {
           <div className="p-4">
             <div className="mx-auto mb-4 h-1 w-9 rounded-full bg-white/25" />
             <h2 className="text-[20px] font-semibold text-white">{draft.parsed.store}</h2>
-            <p className="mt-0.5 text-[13px] text-white/50">
+            <p className="mt-0.5 text-[13px] text-[var(--ink-2)]">
               {draft.parsed.purchasedAt || 'Datum saknas på kvittot'} ·{' '}
               {draft.parsed.items.length} varor
             </p>
 
             {draftMismatch > 1 && (
-              <div className="mt-3 flex items-start gap-2 rounded-2xl border border-[#fa6a22]/30 bg-[#fa6a22]/10 p-3">
-                <IconWarning className="w-5 h-5 shrink-0 text-[#fa6a22]" />
+              <div className="mt-3 flex items-start gap-2 rounded-2xl border border-[#ff6b4a]/30 bg-[#ff6b4a]/10 p-3">
+                <IconWarning className="w-5 h-5 shrink-0 text-[#ff6b4a]" />
                 <p className="text-[13px] leading-relaxed text-white/80">
                   Raderna summerar till {kr(draftSum, true)} men kvittot säger{' '}
                   {kr(draft.parsed.total, true)}. Skillnad {kr(draftMismatch, true)} — troligen en
@@ -213,14 +213,14 @@ export default function KvittonPage() {
             {draft.parsed.warnings.length > 0 && (
               <ul className="mt-3 space-y-1">
                 {draft.parsed.warnings.map((w, i) => (
-                  <li key={i} className="text-[13px] leading-relaxed text-white/50">
+                  <li key={i} className="text-[13px] leading-relaxed text-[var(--ink-2)]">
                     · {w}
                   </li>
                 ))}
               </ul>
             )}
 
-            <ul className="mt-4 divide-y divide-white/[0.07]">
+            <ul className="mt-4 divide-y divide-[var(--hair)]">
               {draft.parsed.items.map((item, i) => {
                 const m = meta(item.category);
                 const ppk =
@@ -232,7 +232,7 @@ export default function KvittonPage() {
                     <span className="text-[18px] leading-none pt-0.5">{m.icon}</span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[15px] text-white">{item.name}</p>
-                      <p className="truncate text-[12px] text-white/40">
+                      <p className="truncate text-[12px] text-[var(--ink-3)]">
                         {num(item.quantity)} {item.unit}
                         {item.weightGrams ? ` · ${num(item.weightGrams)} g` : ''}
                         {ppk ? ` · ${kr(ppk)}/kg` : ''}
@@ -247,7 +247,7 @@ export default function KvittonPage() {
               })}
             </ul>
 
-            <div className="sticky bottom-0 -mx-4 mt-4 flex gap-2 border-t-[0.5px] border-white/10 bg-black/70 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
+            <div className="sticky bottom-0 -mx-4 mt-4 flex gap-2 border-t-[0.5px] border-white/10 bg-black/70 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <Button rounded outline onClick={discardDraft} className="flex-1">
                 Kasta
               </Button>
@@ -327,7 +327,6 @@ function Overview({
           data={categories.slice(0, 10).map((c) => ({
             label: `${CATEGORY_META[c.category].icon} ${CATEGORY_META[c.category].label}`,
             value: c.total,
-            color: CATEGORY_META[c.category].color,
             formatted: kr(c.total),
             meta: `${(c.share * 100).toFixed(0)} %`,
           }))}
@@ -350,7 +349,7 @@ function Overview({
                     </span>
                   )}
                 </div>
-                <p className="text-[14px] leading-relaxed text-white/55">{insight.body}</p>
+                <p className="text-[14px] leading-relaxed text-[var(--ink-2)]">{insight.body}</p>
               </GlassCard>
             ))}
           </div>
@@ -360,8 +359,8 @@ function Overview({
       {lowConfidence > 0 && (
         <>
           <SectionTitle>Kvalitet</SectionTitle>
-          <GlassCard className="flex items-start gap-3" shine={false}>
-            <IconWarning className="w-5 h-5 shrink-0 text-[#fa6a22]" />
+          <GlassCard className="flex items-start gap-3">
+            <IconWarning className="w-5 h-5 shrink-0 text-[#ff6b4a]" />
             <p className="text-[14px] leading-relaxed text-white/70">
               {lowConfidence} varurader lästes med låg säkerhet. Siffrorna ovan är i den delen
               ungefärliga — kolla dem under fliken Varor.
@@ -389,7 +388,7 @@ function Products({ products }: { products: ReturnType<typeof rollupProducts> })
         action={
           <button
             onClick={() => setSort(sort === 'spend' ? 'kilo' : 'spend')}
-            className="text-[13px] font-medium text-[#0a84ff]"
+            className="text-[13px] font-medium text-[var(--accent)]"
           >
             {sort === 'spend' ? 'Sortera på kilopris' : 'Sortera på summa'}
           </button>
@@ -399,11 +398,10 @@ function Products({ products }: { products: ReturnType<typeof rollupProducts> })
       </SectionTitle>
 
       <GlassCard className="!p-0 overflow-hidden">
-        <ul className="divide-y divide-white/[0.06]">
+        <ul className="divide-y divide-[var(--hair)]">
           {sorted.slice(0, 60).map((p) => (
             <li key={p.key}>
               <Row
-                accent={CATEGORY_META[p.category].color}
                 label={`${CATEGORY_META[p.category].icon} ${p.name}`}
                 sub={[
                   `${p.purchases} köp`,
@@ -423,7 +421,7 @@ function Products({ products }: { products: ReturnType<typeof rollupProducts> })
       </GlassCard>
 
       {sort === 'kilo' && sorted.length === 0 && (
-        <p className="px-4 py-6 text-center text-[14px] text-white/40">
+        <p className="px-4 py-6 text-center text-[14px] text-[var(--ink-3)]">
           Inga varor med känd vikt än. Kilopris kräver att förpackningsstorleken syns på kvittot.
         </p>
       )}
@@ -450,7 +448,7 @@ function ReceiptList({
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate text-[16px] font-semibold text-white">{receipt.store}</p>
-                  <p className="text-[12px] text-white/40">
+                  <p className="text-[12px] text-[var(--ink-3)]">
                     {receipt.purchasedAt} · {receipt.items.length} varor
                     {receipt.source === 'manuell' ? ' · manuell' : ''}
                   </p>
@@ -461,7 +459,7 @@ function ReceiptList({
                   </span>
                   <button
                     onClick={() => onRemove(receipt)}
-                    className="p-1.5 text-white/30 active:text-[#fa6a22]"
+                    className="p-1.5 text-[var(--ink-3)] active:text-[#ff6b4a]"
                     aria-label={`Ta bort kvitto från ${receipt.store}`}
                   >
                     <IconTrash className="w-5 h-5" />
@@ -470,14 +468,14 @@ function ReceiptList({
               </div>
 
               {mismatch && (
-                <p className="text-[12px] text-[#fa6a22]">
+                <p className="text-[12px] text-[#ff6b4a]">
                   Rader: {kr(lineSum, true)} — avviker från totalen.
                 </p>
               )}
 
               <div className="flex flex-wrap gap-1.5">
                 {topCategories(receipt).map(([category, sum]) => (
-                  <Chip key={category} color={CATEGORY_META[category].color}>
+                  <Chip key={category}>
                     {CATEGORY_META[category].icon} {kr(sum)}
                   </Chip>
                 ))}

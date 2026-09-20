@@ -55,6 +55,21 @@ export function monthLabel(key: string): string {
   return `${names[Number(m) - 1] ?? m} ${y.slice(2)}`;
 }
 
+/**
+ * Utskriven månad: '2026-09' → 'September 2026'.
+ *
+ * `monthLabel` ger 'sep 26', vilket är rätt på en diagramaxel och tvetydigt i
+ * en rubrik — där läses det lika gärna som den 26 september.
+ */
+export function monthLongLabel(key: string): string {
+  const [y, m] = key.split('-');
+  const names = [
+    'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
+    'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December',
+  ];
+  return `${names[Number(m) - 1] ?? m} ${y}`;
+}
+
 /** Datum N dagar bakåt, som ISO-datum. */
 export function daysAgo(n: number): string {
   const d = new Date();

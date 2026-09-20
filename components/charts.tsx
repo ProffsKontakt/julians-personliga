@@ -7,26 +7,34 @@ import { useId, useState } from 'react';
  *
  * Designregler som gäller här (och som är medvetna val, inte slarv):
  *
- *  - Varje segment och stapel är ALLTID direktmärkt med text. Färg bär
- *    aldrig identiteten ensam — det är därför 15 matkategorier kan samexistera
- *    utan att bli ett omöjligt färgpussel.
- *  - Ingen donut/paj för många kategorier. Vågräta staplar, sorterade fallande,
- *    läses snabbare på en telefon och behöver inte färgkodad legend.
+ *  - Varje segment och stapel är ALLTID direktmärkt med text.
+ *  - Kategoristaplar bär EN färg — skärmens accent. Kategorierna är nominella
+ *    (kött, mejeri, godis): att färga dem olika spenderar identitetskanalen på
+ *    att upprepa det stapellängden redan visar. Femton färger var fel svar på
+ *    rätt fråga; etiketten bär identiteten, längden bär storleken.
+ *  - Ingen donut/paj. Vågräta staplar, sorterade fallande.
  *  - En skala per diagram. Aldrig två y-axlar.
  *  - Text bär textfärg, aldrig seriefärgen.
  *  - 2 px mellanrum mellan intilliggande fyllningar, 4 px rundade dataändar.
  *
- * Tier-paletten nedan är validerad för mörkt läge: deuteranopi ΔE 8.6,
- * normalseende ΔE 17.2, kontrast > 3:1 mot glasytan.
+ * TIER_COLORS är den enda äkta flerseriepaletten: en divergerande skala med
+ * appens två poler och en neutral mitt. Validerad mot glasytan (#151A21) i
+ * mörkt läge — alla tre i ljushetsbandet, kontrast ≥ 3:1, sämsta par
+ * ΔE 12.5 (protanopi) och 17.9 (normalseende), alltså över golvet på 15.
+ * Ändras den ska den valideras om.
  */
 export const TIER_COLORS = {
-  satsa: '#26c185',
-  neutral: '#8e8e93',
-  'skar-ner': '#fa6a22',
+  satsa: '#0aa6c4',
+  neutral: '#666b73',
+  'skar-ner': '#ff410d',
 } as const;
 
-const INK = 'rgba(255,255,255,0.92)';
-const INK_DIM = 'rgba(255,255,255,0.45)';
+const INK = 'var(--ink)';
+const INK_DIM = 'var(--ink-3)';
+/** Skärmens accent. Kategoristaplar och enkelseriediagram använder den. */
+const ACCENT = 'var(--accent-fill)';
+/** Negativa värden. Egen färg — ett minustecken ensamt räcker inte. */
+const NEGATIVE = '#ff6b4a';
 
 /* ------------------------------------------------------------------ */
 /* Vågräta staplar                                                     */
@@ -52,7 +60,7 @@ export function BarList({
   emptyLabel?: string;
 }) {
   if (data.length === 0) {
-    return <p className="px-4 py-6 text-center text-[14px] text-white/40">{emptyLabel}</p>;
+    return <p className="px-4 py-6 text-center text-[14px] text-[var(--ink-3)]">{emptyLabel}</p>;
   }
   const ceiling = max ?? Math.max(...data.map((d) => d.value), 1);
 
@@ -72,7 +80,7 @@ export function BarList({
             </div>
             <div className="flex items-center gap-2">
               <div
-                className="h-2 flex-1 overflow-hidden rounded-full bg-white/[0.08]"
+                className="h-2 flex-1 overflow-hidden rounded-full bg-white/[0.07]"
                 role="img"
                 aria-label={`${d.label}: ${d.formatted ?? d.value}`}
               >
@@ -80,7 +88,7 @@ export function BarList({
                   className="h-full rounded-full transition-[width] duration-500 ease-out"
                   style={{
                     width: `${Math.max(share * 100, 1.5)}%`,
-                    backgroundColor: d.color ?? 'rgba(255,255,255,0.7)',
+                    backgroundColor: d.color ?? ACCENT,
                   }}
                 />
               </div>
@@ -116,7 +124,7 @@ export function StackedShare({
 }) {
   const total = segments.reduce((a, s) => a + s.value, 0);
   if (total <= 0) {
-    return <p className="py-4 text-center text-[14px] text-white/40">Ingen data än</p>;
+    return <p className="py-4 text-center text-[14px] text-[var(--ink-3)]">Ingen data än</p>;
   }
   const visible = segments.filter((s) => s.value > 0);
 
@@ -159,11 +167,19 @@ export function StackedShare({
 /* Kolumndiagram (en serie)                                            */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Kolumndiagram, en serie, med nollinje.
+ *
+ * Negativa värden ritas nedåt från nollinjen och i varningsfärg. Tidigare
+ * klampades alla staplar till minst 2 % höjd uppåt, vilket fick en
+ * förlustmånad att se ut som en liten vinst — ett diagram som ljuger om
+ * tecknet är värre än inget diagram.
+ */
 export function ColumnChart({
   data,
   format,
   height = 132,
-  color = '#0a84ff',
+  color = ACCENT,
 }: {
   data: { label: string; value: number }[];
   format: (n: number) => string;
@@ -173,10 +189,16 @@ export function ColumnChart({
   const [active, setActive] = useState<number | null>(null);
 
   if (data.length === 0) {
-    return <p className="py-8 text-center text-[14px] text-white/40">Ingen data än</p>;
+    return <p className="py-8 text-center text-[14px] text-[var(--ink-3)]">Ingen data än</p>;
   }
 
-  const max = Math.max(...data.map((d) => d.value), 1);
+  const max = Math.max(...data.map((d) => d.value), 0);
+  const min = Math.min(...data.map((d) => d.value), 0);
+  const span = max - min || 1;
+  const posH = (max / span) * height;
+  const negH = height - posH;
+  const harNegativa = min < 0;
+
   const shown = active !== null ? data[active] : data[data.length - 1];
 
   return (
@@ -185,38 +207,71 @@ export function ColumnChart({
         <span className="text-[12px]" style={{ color: INK_DIM }}>
           {shown.label}
         </span>
-        <span className="tnum text-[15px] font-semibold" style={{ color: INK }}>
+        <span
+          className="tnum text-[15px] font-semibold"
+          style={{ color: shown.value < 0 ? NEGATIVE : INK }}
+        >
           {format(shown.value)}
         </span>
       </div>
 
-      {/* Staplarna får en takbredd: två månader ska inte bli två väggar. */}
-      <div className="flex items-end justify-between gap-[3px]" style={{ height }}>
-        {data.map((d, i) => {
-          const isActive = active === null ? i === data.length - 1 : active === i;
-          return (
-            <button
-              key={d.label}
-              type="button"
-              className="group relative flex h-full flex-1 items-end justify-center"
-              style={{ maxWidth: 56 }}
-              onPointerEnter={() => setActive(i)}
-              onPointerLeave={() => setActive(null)}
-              onFocus={() => setActive(i)}
-              onBlur={() => setActive(null)}
-              aria-label={`${d.label}: ${format(d.value)}`}
-            >
-              <span
-                className="w-full rounded-t-[4px] transition-all duration-300"
-                style={{
-                  height: `${Math.max((d.value / max) * 100, 2)}%`,
-                  backgroundColor: color,
-                  opacity: isActive ? 1 : 0.42,
-                }}
-              />
-            </button>
-          );
-        })}
+      <div className="relative" style={{ height }}>
+        {/* Nollinjen ritas bara när den faktiskt delar data. */}
+        {harNegativa && (
+          <div
+            aria-hidden
+            className="absolute right-0 left-0 h-px"
+            style={{ top: posH, background: 'rgb(255 255 255 / 0.16)' }}
+          />
+        )}
+
+        <div className="flex h-full items-stretch justify-center gap-2">
+          {data.map((d, i) => {
+            const isActive = active === null ? i === data.length - 1 : active === i;
+            const neg = d.value < 0;
+            const andel = Math.abs(d.value) / span;
+            return (
+              <button
+                key={d.label}
+                type="button"
+                className="group relative flex h-full flex-1 flex-col"
+                style={{ maxWidth: 72 }}
+                onPointerEnter={() => setActive(i)}
+                onPointerLeave={() => setActive(null)}
+                onFocus={() => setActive(i)}
+                onBlur={() => setActive(null)}
+                aria-label={`${d.label}: ${format(d.value)}`}
+              >
+                {/* Positiv halva: stapeln växer uppåt från nollinjen. */}
+                <span className="flex w-full items-end" style={{ height: posH }}>
+                  {!neg && (
+                    <span
+                      className="w-full rounded-t-[4px] transition-all duration-300"
+                      style={{
+                        height: `${Math.max(andel * 100, 1)}%`,
+                        backgroundColor: color,
+                        opacity: isActive ? 1 : 0.45,
+                      }}
+                    />
+                  )}
+                </span>
+                {/* Negativ halva: nedåt, i varningsfärg. */}
+                <span className="flex w-full items-start" style={{ height: negH }}>
+                  {neg && (
+                    <span
+                      className="w-full rounded-b-[4px] transition-all duration-300"
+                      style={{
+                        height: `${Math.max(andel * 100, 1)}%`,
+                        backgroundColor: NEGATIVE,
+                        opacity: isActive ? 1 : 0.45,
+                      }}
+                    />
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="flex justify-between">
@@ -239,7 +294,7 @@ export function LineChart({
   data,
   format,
   height = 150,
-  color = '#0a84ff',
+  color = ACCENT,
 }: {
   data: { label: string; value: number }[];
   format: (n: number) => string;
@@ -251,7 +306,7 @@ export function LineChart({
 
   if (data.length < 2) {
     return (
-      <p className="py-8 text-center text-[14px] text-white/40">
+      <p className="py-8 text-center text-[14px] text-[var(--ink-3)]">
         Minst två datapunkter krävs för en kurva.
       </p>
     );
@@ -324,12 +379,12 @@ export function LineChart({
           y1={PAD / 2}
           x2={x(shownIndex)}
           y2={H - PAD / 2}
-          stroke="rgba(255,255,255,0.22)"
+          stroke="rgb(var(--accent-rgb) / 0.35)"
           strokeWidth="1"
           vectorEffect="non-scaling-stroke"
         />
         {/* 2 px ring i ytans färg så markören läser även över linjen. */}
-        <circle cx={x(shownIndex)} cy={y(shown.value)} r="6" fill="#0b0b0e" />
+        <circle cx={x(shownIndex)} cy={y(shown.value)} r="6" fill="var(--page)" />
         <circle cx={x(shownIndex)} cy={y(shown.value)} r="4.5" fill={color} />
       </svg>
 
@@ -341,6 +396,125 @@ export function LineChart({
           {data[data.length - 1].label}
         </span>
       </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Reaktorn — nollpunktsmätare                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Månadens täckningsbidrag mätt mot de fasta kostnaderna.
+ *
+ * Det här är svaret på frågan om en 3D-matris. En roterande kub hade kodat
+ * noll variabler och åldrats på ett halvår. Den här ringen kodar en enda
+ * sak, och det är månadens viktigaste: hur långt täckningsbidraget räcker
+ * mot de kostnader som löper oavsett. Hela varvet är nollpunkten. Allt
+ * bortom den är vinst, och ritas som ett andra varv i en ljusare ton.
+ *
+ * Saknas fasta kostnader finns ingen nollpunkt att mäta mot. Då ritas ingen
+ * mätare alls — en tom ring hade påstått att nollpunkten var noll.
+ */
+export function Reactor({
+  tb,
+  fasta,
+  format,
+}: {
+  tb: number;
+  fasta: number;
+  format: (n: number) => string;
+}) {
+  const id = useId();
+  const SWEEP = 75; // 270° av 360, uttryckt mot pathLength=100
+  const har = fasta > 0;
+
+  const andel = har ? Math.max(tb / fasta, 0) : 0;
+  const primar = Math.min(andel, 1);
+  const overskott = Math.max(andel - 1, 0);
+  // Ett andra varv räcker till dubbla nollpunkten; däröver kapas ringen och
+  // siffran får bära resten. Bättre en ärlig kapning än en ring som snurrar.
+  const overskottVisat = Math.min(overskott, 1);
+
+  const ring = (r: number, frac: number, stroke: string, width: number, opacity = 1) => (
+    <circle
+      cx="120"
+      cy="120"
+      r={r}
+      pathLength="100"
+      fill="none"
+      stroke={stroke}
+      strokeWidth={width}
+      strokeLinecap="round"
+      strokeDasharray={`${(SWEEP * frac).toFixed(2)} 100`}
+      transform="rotate(135 120 120)"
+      opacity={opacity}
+    />
+  );
+
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <svg
+        viewBox="0 0 240 216"
+        className="w-full max-w-[210px] sm:max-w-[280px]"
+        role="img"
+        aria-label={
+          har
+            ? `Täckningsbidrag ${format(tb)} av ${format(fasta)} i fasta kostnader, ${(andel * 100).toFixed(0)} procent av nollpunkten`
+            : `Täckningsbidrag ${format(tb)}. Inga fasta kostnader inlagda, så nollpunkten är okänd.`
+        }
+      >
+        <defs>
+          <filter id={`glow-${id}`} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="4" result="b" />
+            <feMerge>
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        {/* Spår */}
+        {ring(96, 1, 'rgb(255 255 255 / 0.07)', 6)}
+        {ring(78, 1, 'rgb(255 255 255 / 0.05)', 4)}
+
+        {har && (
+          <g filter={`url(#glow-${id})`}>
+            {ring(96, primar, 'var(--accent-fill)', 6)}
+            {overskottVisat > 0 && ring(78, overskottVisat, 'var(--accent-hot)', 4)}
+          </g>
+        )}
+
+        {/* Nollpunktsmarkering: slutet av första varvet. */}
+        {har && (
+          <g transform="rotate(45 120 120)">
+            <line
+              x1="120"
+              y1="12"
+              x2="120"
+              y2="32"
+              stroke={INK_DIM}
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </g>
+        )}
+      </svg>
+
+      <p className="text-center text-[12px] leading-relaxed" style={{ color: INK_DIM }}>
+        {har ? (
+          <>
+            Täckningsbidraget täcker{' '}
+            <span className="tnum font-semibold" style={{ color: INK }}>
+              {(andel * 100).toFixed(0)} %
+            </span>{' '}
+            av {format(fasta)} i fasta kostnader.
+            {overskott > 1 && ' Överskottet är större än ringen rymmer.'}
+          </>
+        ) : (
+          <>Inga fasta kostnader inlagda — nollpunkten går inte att räkna ut.</>
+        )}
+      </p>
     </div>
   );
 }

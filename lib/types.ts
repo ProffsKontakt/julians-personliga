@@ -192,6 +192,92 @@ export interface Workout {
 }
 
 /* ------------------------------------------------------------------ */
+/* Företag                                                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Affärens läge i säljprocessen.
+ *
+ * `vunnen` och `fakturerad` är båda vunna — skillnaden är om pengarna kommit
+ * in. Täckningsbidraget räknas från `vunnen`; likviditeten först vid
+ * `fakturerad`. Utan den uppdelningen går det inte att se skillnad på en bra
+ * månad och en månad där allt ligger i kundfordringar.
+ */
+export const DEAL_STATUSES = [
+  'lead',
+  'offert',
+  'forhandling',
+  'vunnen',
+  'fakturerad',
+  'forlorad',
+] as const;
+
+export type DealStatus = (typeof DEAL_STATUSES)[number];
+
+/** Statusar som räknas som intäkt. Allt annat är pipeline eller förlust. */
+export const WON_STATUSES: readonly DealStatus[] = ['vunnen', 'fakturerad'];
+
+export const DEAL_OPEN_STATUSES: readonly DealStatus[] = ['lead', 'offert', 'forhandling'];
+
+export interface Deal {
+  id: string;
+  kund: string;
+  titel: string;
+  status: DealStatus;
+  /** Intäkt exklusive moms, SEK. */
+  varde: number;
+  /**
+   * Rörlig kostnad för affären: material, underentreprenör, installationstid.
+   * Allt som försvinner om affären inte blir av. Fasta kostnader hör inte hit
+   * — de ligger i `FixedCost` och dras av först på resultatraden.
+   */
+  rorligKostnad: number;
+  /**
+   * Sannolikhet 0–100. Driver den viktade pipelinen. Null betyder att den
+   * aldrig satts — då utesluts affären ur viktningen i stället för att
+   * tilldelas en påhittad siffra.
+   */
+  sannolikhet?: number;
+  /** När affären öppnades. */
+  oppnad: ISODate;
+  /** När den vanns eller förlorades. Null så länge den är öppen. */
+  stangd?: ISODate;
+  /** Varifrån affären kom: "rekommendation", "Hemsida", "kalla samtal" … */
+  kalla?: string;
+  note?: string;
+  createdAt: ISODateTime;
+}
+
+export const COST_CATEGORIES = [
+  'loner',
+  'lokal',
+  'fordon',
+  'verktyg',
+  'forsakring',
+  'marknadsforing',
+  'system',
+  'redovisning',
+  'ovrigt',
+] as const;
+
+export type CostCategory = (typeof COST_CATEGORIES)[number];
+
+/**
+ * Fast kostnad för en månad. Ligger separat från affärerna eftersom den
+ * löper oavsett om något säljs — det är precis den skillnaden som gör
+ * täckningsbidraget meningsfullt.
+ */
+export interface FixedCost {
+  id: string;
+  /** Månaden kostnaden hör till, som 'YYYY-MM'. */
+  manad: string;
+  kategori: CostCategory;
+  belopp: number;
+  note?: string;
+  createdAt: ISODateTime;
+}
+
+/* ------------------------------------------------------------------ */
 /* Hela databasen                                                      */
 /* ------------------------------------------------------------------ */
 
@@ -202,11 +288,13 @@ export interface HubState {
   exercises: Exercise[];
   programs: Program[];
   workouts: Workout[];
+  deals: Deal[];
+  fixedCosts: FixedCost[];
   /** Schemaversion — gör migrering möjlig när modellen ändras. */
   version: number;
 }
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const EMPTY_STATE: HubState = {
   receipts: [],
@@ -215,5 +303,7 @@ export const EMPTY_STATE: HubState = {
   exercises: [],
   programs: [],
   workouts: [],
+  deals: [],
+  fixedCosts: [],
   version: SCHEMA_VERSION,
 };
