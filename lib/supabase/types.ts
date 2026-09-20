@@ -18,6 +18,8 @@ export type FoodCategoryCode =
   | 'spannmal' | 'fett-olja' | 'dryck' | 'godis-snacks' | 'fardigmat'
   | 'krydda-sas' | 'hushall' | 'ovrigt';
 
+export type DealUrsprungCode = 'manuell' | 'crm';
+
 export type DealStatusCode =
   | 'lead' | 'offert' | 'forhandling' | 'vunnen' | 'fakturerad' | 'forlorad';
 
@@ -131,9 +133,20 @@ export type WorkoutSetRow = {
   warmup: boolean;
 }
 
+export type CompanyRow = {
+  id: string;
+  user_id: string;
+  namn: string;
+  kortnamn: string | null;
+  orgnr: string | null;
+  aktiv: boolean;
+  created_at: string;
+}
+
 export type DealRow = {
   id: string;
   user_id: string;
+  company_id: string;
   kund: string;
   titel: string;
   status: DealStatusCode;
@@ -147,11 +160,15 @@ export type DealRow = {
   created_at: string;
   /** Genererad i databasen (varde - rorlig_kostnad) — skrivs aldrig av klienten. */
   tb: number | null;
+  ursprung: DealUrsprungCode;
+  extern_id: string | null;
+  synkad_at: string | null;
 }
 
 export type FixedCostRow = {
   id: string;
   user_id: string;
+  company_id: string;
   manad: string;
   kategori: CostCategoryCode;
   belopp: number;
@@ -220,6 +237,7 @@ export type Database = {
       programs: Table<ProgramRow>;
       workouts: Table<WorkoutRow, WorkoutRels>;
       workout_sets: Table<WorkoutSetRow, WorkoutSetRels>;
+      companies: Table<CompanyRow>;
       deals: Table<DealRow>;
       fixed_costs: Table<FixedCostRow>;
     };
@@ -230,6 +248,7 @@ export type Database = {
       cashflow_type: CashflowType;
       cost_category: CostCategoryCode;
       deal_status: DealStatusCode;
+      deal_ursprung: DealUrsprungCode;
       currency: CurrencyCode;
       food_category: FoodCategoryCode;
       holding_kind: HoldingKind;

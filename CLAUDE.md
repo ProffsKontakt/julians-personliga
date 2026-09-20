@@ -160,9 +160,23 @@ konto. En trigger på `auth.users` avvisar registrering med annan adress.
 
 ### Företagsmodulen
 
-`deals` och `fixed_costs` (migration `0002_foretag.sql`). Distinktionen är hela
-poängen: en affärs **rörliga** kostnad försvinner om affären inte blir av, de
-**fasta** löper ändå.
+`companies`, `deals` och `fixed_costs` (migrationerna `0002_foretag.sql` och
+`0003_flera_bolag.sql`). Distinktionen är hela poängen: en affärs **rörliga**
+kostnad försvinner om affären inte blir av, de **fasta** löper ändå.
+
+**Flera bolag.** Varje affär och fast kostnad bär `company_id`. Dashboarden
+visar ett bolag i taget — det aktiva valet ligger i `localStorage`
+(`jarvis.aktivtBolag`) via `useStore().activeCompany`, eftersom det är ett
+vyval och inte data. Första bolaget, Optimera Energi, läggs in vid första
+inloggningen på samma sätt som övningsbiblioteket. `saveDeal` och
+`saveFixedCost` fyller i det aktiva bolaget när `companyId` är tomt.
+
+**CRM-beredskap, inte CRM-integration.** Tre kolumner på `deals` — `ursprung`
+(`manuell` | `crm`), `extern_id`, `synkad_at` — och ett unikt index på
+`(company_id, extern_id)`. Det är vad som gör en framtida synk idempotent.
+Kontraktet står i `lib/crm/adapter.ts`. Reglerna: appen skriver aldrig en
+CRM-affär (formuläret låser den), synken körs på servern bakom
+`requireUser()`, och det CRM:et inte vet lämnas tomt — aldrig gissat.
 
 ```
 TB (täckningsbidrag) = varde − rorlig_kostnad     ← genererad kolumn i databasen

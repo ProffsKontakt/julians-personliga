@@ -502,3 +502,69 @@
   box-shadow: none;
   color: var(--ink-3);
 }
+
+/*
+ * ═══════════════════════════════════════════════════════════════════
+ * RUTNÄTSGOLVET — bara på inloggningen
+ *
+ * Det perspektiviska golvet är den mest igenkännbara bilden i Tron: ett
+ * rutnät som försvinner mot en horisont. I appen hade det tävlat med data
+ * och tagits bort. På inloggningen finns ingen data, så här får det finnas.
+ * Ett element, en transform, ingen animation — det är kompositorbilligt
+ * och rör sig inte, så prefers-reduced-motion behöver inte bry sig.
+ * ═══════════════════════════════════════════════════════════════════
+ */
+.grid-floor {
+  position: fixed;
+  left: -40vw;
+  right: -40vw;
+  bottom: 0;
+  /* Lågt nog att formuläret svävar ovanför horisonten på både telefon och
+     desktop. På 44 vh skar linjen rakt genom lösenordsfältet. */
+  height: 26vh;
+  z-index: -5;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      rgb(var(--accent-rgb) / 0.28) 0 1px,
+      transparent 1px 72px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      rgb(var(--accent-rgb) / 0.28) 0 1px,
+      transparent 1px 72px
+    );
+  transform-origin: 50% 100%;
+  transform: perspective(560px) rotateX(64deg);
+  /* Tonar ut mot horisonten så linjerna inte kolliderar med rubriken. */
+  -webkit-mask-image: linear-gradient(to top, #000 0%, rgb(0 0 0 / 0.6) 45%, transparent 100%);
+  mask-image: linear-gradient(to top, #000 0%, rgb(0 0 0 / 0.6) 45%, transparent 100%);
+}
+
+/* Horisontlinjen: den ljusaste enskilda linjen på skärmen, som i filmen. */
+.grid-horizon {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 26vh;
+  height: 1px;
+  z-index: -5;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(var(--accent-rgb) / 0.55) 30%,
+    rgb(var(--accent-rgb) / 0.85) 50%,
+    rgb(var(--accent-rgb) / 0.55) 70%,
+    transparent
+  );
+  box-shadow: 0 0 24px 2px rgb(var(--accent-rgb) / 0.35);
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .grid-floor,
+  .grid-horizon {
+    display: none;
+  }
+}

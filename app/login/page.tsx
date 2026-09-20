@@ -4,6 +4,7 @@ import { App, Page, Button } from 'konsta/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import { IconCheck, IconSparkle, IconWarning } from '@/components/icons';
+import { Monogram } from '@/components/Shell';
 import { GlassCard } from '@/components/ui';
 import { supabaseBrowser } from '@/lib/supabase/client';
 
@@ -106,21 +107,34 @@ function LoginInner() {
   return (
     <App theme="ios" dark safeAreas>
       <div className="ambient" aria-hidden="true" />
+      {/* Rutnätsgolvet och horisonten finns bara här: i appen hade de
+          tävlat med data, på inloggningen finns ingen. */}
+      <div className="grid-floor" aria-hidden="true" />
+      <div className="grid-horizon" aria-hidden="true" />
       <Page className="!bg-transparent">
-        <div className="flex min-h-full items-center justify-center p-5">
+        {/* Lyft mot horisonten: innehållet centreras i ytan ovanför golvet. */}
+        <div className="flex min-h-full items-center justify-center p-5 pb-[20vh]">
           <div className="w-full max-w-sm">
-            <h1 className="mb-1 text-center text-[34px] font-bold tracking-tight text-white">
-              Jarvis
-            </h1>
-            <p className="mb-6 text-center text-[15px] text-[var(--ink-3)]">Din hubb.</p>
+            <div className="mb-7 flex flex-col items-center gap-4">
+              <Monogram className="w-16 h-16 drop-shadow-[0_0_18px_rgb(var(--accent-rgb)/0.55)]" />
+              <div className="flex flex-col items-center gap-1.5">
+                <h1
+                  className="text-[30px] font-semibold tracking-[0.32em] text-white"
+                  style={{ paddingLeft: '0.32em' }}
+                >
+                  JARVIS
+                </h1>
+                <span className="micro">Identifiera dig</span>
+              </div>
+            </div>
 
             {state === 'reset-sent' ? (
               <GlassCard accent className="flex flex-col items-center gap-3 py-8 text-center">
                 <IconCheck className="w-8 h-8 text-[var(--accent)]" />
                 <h2 className="text-[17px] font-semibold text-white">Återställningslänk skickad</h2>
                 <p className="max-w-[30ch] text-[14px] leading-relaxed text-white/55">
-                  Kolla mejlen till {email}. Landar länken på fel adress är det Site URL i
-                  Supabase som pekar fel.
+                  Kolla mejlen till {email}. Landar länken på fel adress är det Site URL i Supabase
+                  som pekar fel.
                 </p>
                 <button
                   onClick={() => setState('idle')}

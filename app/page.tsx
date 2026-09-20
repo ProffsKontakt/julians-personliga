@@ -31,23 +31,26 @@ import { daysAgo, kr, monthLabel, monthLongLabel, num, pct, today } from '@/lib/
  * instrumentpanel. En med hälften av instrumenten borttagna är trasig.
  */
 export default function HomePage() {
-  const { state, ready } = useStore();
+  const { state, ready, activeCompany } = useStore();
   const manad = today().slice(0, 7);
 
-  /* --- Företag ------------------------------------------------------ */
+  /* --- Företag: det aktiva bolaget ---------------------------------- */
+  const bolagId = activeCompany?.id;
+  const deals = useMemo(
+    () => state.deals.filter((d) => d.companyId === bolagId),
+    [state.deals, bolagId],
+  );
+  const fixedCosts = useMemo(
+    () => state.fixedCosts.filter((c) => c.companyId === bolagId),
+    [state.fixedCosts, bolagId],
+  );
   const foretag = useMemo(
-    () => summarizeBusiness(state.deals, state.fixedCosts, manad),
-    [state.deals, state.fixedCosts, manad],
+    () => summarizeBusiness(deals, fixedCosts, manad),
+    [deals, fixedCosts, manad],
   );
-  const foretagTotalt = useMemo(
-    () => summarizeBusiness(state.deals, state.fixedCosts),
-    [state.deals, state.fixedCosts],
-  );
-  const manader = useMemo(
-    () => businessByMonth(state.deals, state.fixedCosts),
-    [state.deals, state.fixedCosts],
-  );
-  const harForetag = state.deals.length > 0 || state.fixedCosts.length > 0;
+  const foretagTotalt = useMemo(() => summarizeBusiness(deals, fixedCosts), [deals, fixedCosts]);
+  const manader = useMemo(() => businessByMonth(deals, fixedCosts), [deals, fixedCosts]);
+  const harForetag = deals.length > 0 || fixedCosts.length > 0;
 
   /* --- Kapital ------------------------------------------------------ */
   const portfolj = useMemo(
@@ -87,7 +90,7 @@ export default function HomePage() {
       <Block className="!mt-0 !mb-0 !px-4 lg:!px-0">
         {/* ── Hero: månadens resultat ─────────────────────────────── */}
         <RuleHeading action={<Pil href="/foretag" />}>
-          {monthLongLabel(manad)} · företaget
+          {monthLongLabel(manad)} · {activeCompany?.namn ?? 'företaget'}
         </RuleHeading>
 
         <Grid>
@@ -130,7 +133,9 @@ export default function HomePage() {
             ) : (
               <Saknas
                 stort
-                text="Inga affärer inlagda"
+                text={
+                  activeCompany ? `Inga affärer i ${activeCompany.namn}` : 'Inga affärer inlagda'
+                }
                 forklaring="Lägg in en affär med värde och rörlig kostnad, så räknas täckningsbidrag, täckningsgrad och resultat ut härifrån."
                 href="/foretag"
                 lank="Öppna Företag"
@@ -143,9 +148,9 @@ export default function HomePage() {
             <div className="grid grid-cols-2 content-start gap-x-4 gap-y-5 sm:gap-x-6">
               <Kpi
                 label="Pipeline"
-                value={state.deals.length > 0 ? kr(foretagTotalt.pipeline) : '–'}
+                value={deals.length > 0 ? kr(foretagTotalt.pipeline) : '–'}
                 sub={
-                  state.deals.length > 0
+                  deals.length > 0
                     ? `Viktat ${kr(foretagTotalt.viktadPipeline)}`
                     : 'Inga öppna affärer'
                 }

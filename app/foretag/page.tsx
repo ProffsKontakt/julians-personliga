@@ -3,6 +3,7 @@
 import { Block, Button, Sheet } from 'konsta/react';
 import { useMemo, useState } from 'react';
 import { BarList, ColumnChart } from '@/components/charts';
+import { CompanySwitcher } from '@/components/CompanySwitcher';
 import { IconPlus, IconTrash, IconWarning } from '@/components/icons';
 import Shell from '@/components/Shell';
 import {
@@ -38,34 +39,46 @@ import { kr, monthLabel, monthLongLabel, num, today, uid } from '@/lib/utils';
 type View = 'oversikt' | 'affarer' | 'kostnader';
 
 export default function ForetagPage() {
-  const { state, ready, saveDeal, removeDeal, saveFixedCost, removeFixedCost, error } = useStore();
+  const {
+    state,
+    ready,
+    activeCompany,
+    saveDeal,
+    removeDeal,
+    saveFixedCost,
+    removeFixedCost,
+    error,
+  } = useStore();
   const [view, setView] = useState<View>('oversikt');
   const [dealOpen, setDealOpen] = useState(false);
   const [editing, setEditing] = useState<Deal | undefined>();
   const [costOpen, setCostOpen] = useState(false);
 
-  const manad = today().slice(0, 7);
-  const period = useMemo(
-    () => summarizeBusiness(state.deals, state.fixedCosts, manad),
-    [state.deals, state.fixedCosts, manad],
+  // Allt på den här skärmen handlar om ett bolag i taget.
+  const bolagId = activeCompany?.id;
+  const deals = useMemo(
+    () => state.deals.filter((d) => d.companyId === bolagId),
+    [state.deals, bolagId],
   );
-  const totalt = useMemo(
-    () => summarizeBusiness(state.deals, state.fixedCosts),
-    [state.deals, state.fixedCosts],
-  );
-  const manader = useMemo(
-    () => businessByMonth(state.deals, state.fixedCosts),
-    [state.deals, state.fixedCosts],
+  const fixedCosts = useMemo(
+    () => state.fixedCosts.filter((c) => c.companyId === bolagId),
+    [state.fixedCosts, bolagId],
   );
 
-  const tomt = state.deals.length === 0 && state.fixedCosts.length === 0;
+  const manad = today().slice(0, 7);
+  const period = useMemo(
+    () => summarizeBusiness(deals, fixedCosts, manad),
+    [deals, fixedCosts, manad],
+  );
+  const totalt = useMemo(() => summarizeBusiness(deals, fixedCosts), [deals, fixedCosts]);
+  const manader = useMemo(() => businessByMonth(deals, fixedCosts), [deals, fixedCosts]);
+
+  const tomt = deals.length === 0 && fixedCosts.length === 0;
 
   return (
     <Shell
-      title="Företag"
-      subtitle={
-        ready ? `${state.deals.length} affärer · ${kr(totalt.omsattning)} omsatt` : 'Läser…'
-      }
+      title={activeCompany?.namn ?? 'Företag'}
+      subtitle={ready ? `${deals.length} affärer · ${kr(totalt.omsattning)} omsatt` : 'Läser…'}
       right={
         <button
           onClick={() => {
@@ -81,6 +94,10 @@ export default function ForetagPage() {
       }
     >
       <Block className="!mt-3 !mb-0 !px-4 lg:!px-0">
+        <div className="mb-3">
+          <CompanySwitcher />
+        </div>
+
         <Tabs
           value={view}
           onChange={setView}
@@ -104,7 +121,7 @@ export default function ForetagPage() {
       {tomt ? (
         <Block className="!mt-6 !px-4 lg:!px-0">
           <EmptyState
-            title="Inga affärer än"
+            title={activeCompany ? `Inga affärer i ${activeCompany.namn} än` : 'Inga affärer än'}
             body="Lägg in en affär med värde och rörlig kostnad — material, underentreprenör, installationstid. Täckningsbidraget räknas ut därifrån. Fasta kostnader läggs in per månad och dras av först på resultatraden, för det är den skillnaden som gör TB meningsfullt."
             action={
               <Button rounded className="btn-tron mt-2" onClick={() => setDealOpen(true)}>
@@ -120,13 +137,13 @@ export default function ForetagPage() {
               period={period}
               totalt={totalt}
               manader={manader}
-              deals={state.deals}
+              deals={deals}
               manad={manad}
             />
           )}
           {view === 'affarer' && (
             <Affarer
-              deals={state.deals}
+              deals={deals}
               onEdit={(d) => {
                 setEditing(d);
                 setDealOpen(true);
@@ -136,7 +153,7 @@ export default function ForetagPage() {
           )}
           {view === 'kostnader' && (
             <Kostnader
-              costs={state.fixedCosts}
+              costs={fixedCosts}
               onRemove={(id) => void removeFixedCost(id)}
               onAdd={() => setCostOpen(true)}
             />
@@ -475,11 +492,19 @@ function DealForm({
   const k = Number(kostnad.replace(',', '.')) || 0;
   const bidrag = v - k;
   const grad = v > 0 ? (bidrag / v) * 100 : undefined;
-  const giltig = kund.trim() !== '' && titel.trim() !== '' && v > 0 && k <= v;
+  // En affär från ett CRM ägs av CRM:et. Sparas den här skrivs ändringen
+  // över vid nästa synk, och användaren tror att något ändrats.
+  const franCrm = initial?.ursprung === 'crm';
+  const giltig = !franCrm && kund.trim() !== '' && titel.trim() !== '' && v > 0 && k <= v;
 
   function spara() {
     onSave({
       id: initial?.id ?? uid('d'),
+      // Tomt companyId → butiken fyller i det aktiva bolaget.
+      companyId: initial?.companyId ?? '',
+      ursprung: initial?.ursprung ?? 'manuell',
+      externId: initial?.externId,
+      synkadAt: initial?.synkadAt,
       kund: kund.trim(),
       titel: titel.trim(),
       status,
@@ -502,6 +527,12 @@ function DealForm({
         <h2 className="text-[20px] font-semibold text-white">
           {initial ? 'Ändra affär' : 'Ny affär'}
         </h2>
+
+        {franCrm && (
+          <p className="mt-2 rounded-[var(--r-well)] bg-[rgb(var(--accent-rgb)/0.1)] px-3 py-2 text-[13px] leading-relaxed text-[var(--ink-2)]">
+            Hämtad från CRM. Ändringar görs där — annars skrivs de över vid nästa synk.
+          </p>
+        )}
 
         <div className="mt-4 flex flex-col gap-3">
           <Falt label="Kund" value={kund} onChange={setKund} placeholder="Bostadsrättsförening X" />
@@ -658,6 +689,7 @@ function CostForm({
             onClick={() =>
               onSave({
                 id: uid('c'),
+                companyId: '',
                 manad,
                 kategori,
                 belopp: b,
