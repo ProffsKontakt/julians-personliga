@@ -52,7 +52,15 @@ export default function HomePage() {
     state.workouts.length === 0;
 
   return (
-    <Shell title="Jarvis" subtitle={greeting()}>
+    <Shell
+      title="Jarvis"
+      subtitle={greeting()}
+      right={
+        <Link href="/konto" className="p-2 text-[#0a84ff] text-[15px] font-medium">
+          Konto
+        </Link>
+      }
+    >
       {empty ? (
         <Block className="!mt-4 space-y-3">
           <GlassCard className="space-y-2">
