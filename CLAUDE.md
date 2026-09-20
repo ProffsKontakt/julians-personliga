@@ -75,12 +75,32 @@ Reglerna står i `components/charts.tsx` och gäller varje nytt diagram:
 
 ## Datalagret
 
-`lib/db.ts` är en fasad med fyra funktioner: `loadState`, `saveState`, `putImage`,
-`getImage`. Vyer pratar aldrig med IndexedDB direkt — de går via `useStore()`.
-Byts lagringen mot Supabase eller Postgres ska bara `lib/db.ts` behöva ändras.
+**Supabase (Postgres), eu-north-1.** Inloggning med engångslänk per mejl.
 
-Ändras `HubState` ska `SCHEMA_VERSION` bumpas och `migrate()` i `lib/db.ts`
-hantera övergången. Befintlig data får inte tappas.
+- `lib/repo.ts` äger varje anrop mot databasen och all kartläggning mellan
+  databasens snake_case och domänmodellens camelCase. Vyer pratar aldrig med
+  Supabase direkt — de går via `useStore()`.
+- `lib/supabase/` har tre klienter: webbläsare, server och middleware. De delar
+  samma publika nyckel; sessionen kommer från kakan.
+- Schemat ligger i `supabase/migrations/`. Ändras `lib/types.ts` ska en ny
+  migration följa med — enum-värdena finns på båda ställena.
+
+### Säkerhetsregler som inte får brytas
+
+1. **Ingen secret- eller service-nyckel i appen.** Allt går som den inloggade
+   användaren, och radnivåsäkerheten avgör vad som får läsas och skrivas. En
+   secret-nyckel går förbi hela RLS och har ingen plats här.
+2. **Varje ny tabell ska ha `user_id`, RLS påslagen med `force`, och en policy
+   mot `auth.uid()`** — i samma migration som tabellen skapas. Verifiera efteråt
+   med ett anonymt anrop: läsning ska ge tom lista, skrivning ska ge `42501`.
+3. **Nya rutter under `/api/` som kostar pengar anropar `requireUser()` först.**
+   Middleware skyddar redan `/api/` med 401, men ett enda lager mellan ett
+   anonymt anrop och en faktura är för tunt.
+4. **`getUser()`, aldrig `getSession()`** på serversidan. Den senare läser bara
+   kakan, som klienten kan ha hittat på.
+5. **Omdirigeringsmål valideras.** `/auth/callback` släpper bara igenom interna
+   sökvägar; en öppen omdirigering där skickar användaren vidare med sessionen
+   nyss satt.
 
 ## Innan du säger att något är klart
 
@@ -89,7 +109,10 @@ npm run typecheck
 npm run build
 ```
 
-Bygget måste gå igenom **utan miljövariabler** — Vercels första deploy har inga.
+Bygget måste gå igenom **utan miljövariabler** — verifierat 2026-09-20 genom att
+bygga med `.env.local` bortflyttad. Supabase-klienterna kastar först när de
+anropas, inte vid import, vilket är det som håller regeln sann. Bryts det går
+inte en ny deploy upp innan variablerna är på plats.
 
 ## Skills i repot
 
