@@ -456,7 +456,7 @@ export function Reactor({
     <div className="flex flex-col items-center gap-3">
       <svg
         viewBox="0 0 240 216"
-        className="w-full max-w-[280px]"
+        className="w-full max-w-[210px] sm:max-w-[280px]"
         role="img"
         aria-label={
           har

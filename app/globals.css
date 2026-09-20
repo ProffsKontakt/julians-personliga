@@ -78,6 +78,8 @@
   --accent-fill: #0aa6c4;
   --accent-rgb: 110 226 255;
   --glow-a: 0.34;
+  /* Hur mycket accent kortets överkant bär. */
+  --pane-tint: 0.17;
 }
 
 /*
@@ -106,8 +108,10 @@
   --accent-deep: #8e1f05;
   --accent-fill: #ff410d;
   --accent-rgb: 255 90 45;
-  /* Varmt blommar mer perceptuellt — samma alfa skulle skrika. */
+  /* Varmt blommar mer perceptuellt — samma alfa skulle skrika, och samma
+     toning i kortets överkant drar mot brunt i stället för mot glöd. */
   --glow-a: 0.24;
+  --pane-tint: 0.1;
   --page: #0b0709;
   --page-deep: #070406;
 }
@@ -235,7 +239,7 @@
        plast i stället för som glas. */
     radial-gradient(
         100% 58% at 50% 0%,
-        rgb(var(--accent-rgb) / 0.17),
+        rgb(var(--accent-rgb) / var(--pane-tint)),
         transparent 100%
       )
       padding-box,
