@@ -194,9 +194,9 @@ function Rail({ pathname }: { pathname: string }) {
 }
 
 /** Hexagon — motivet går igenom hela filmen. */
-function Monogram() {
+export function Monogram({ className = 'w-9 h-9' }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 34" className="w-9 h-9" aria-hidden>
+    <svg viewBox="0 0 32 34" className={className} aria-hidden>
       <path
         d="M16 1.5 30 9.5v16L16 33.5 2 25.5v-16L16 1.5Z"
         fill="none"

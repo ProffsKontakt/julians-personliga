@@ -4,6 +4,7 @@ import { SEED_EXERCISES } from './seed';
 import {
   EMPTY_STATE,
   type CashFlow,
+  type Company,
   type Deal,
   type Exercise,
   type FixedCost,
@@ -31,18 +32,31 @@ const maybe = (v: unknown): number | undefined =>
 /* ------------------------------------------------------------------ */
 
 export async function loadAll(db: Db, userId: string): Promise<HubState> {
-  const [receipts, holdings, cashflows, exercises, workouts, deals, fixedCosts] =
+  const [receipts, holdings, cashflows, exercises, workouts, companies, deals, fixedCosts] =
     await Promise.all([
       loadReceipts(db),
       db.from('holdings').select('*').order('created_at', { ascending: false }),
       db.from('cashflows').select('*').order('date', { ascending: false }),
       db.from('exercises').select('*').order('name'),
       loadWorkouts(db),
+      db.from('companies').select('*').order('created_at'),
       db.from('deals').select('*').order('oppnad', { ascending: false }),
       db.from('fixed_costs').select('*').order('manad', { ascending: false }),
     ]);
 
   const exerciseRows = exercises.data ?? [];
+  const companyRows = companies.data ?? [];
+
+  // Första inloggningen: det första bolaget är känt — Optimera Energi — så det
+  // läggs in direkt i stället för att mötas av ett tomt formulär. Unik-
+  // villkoret på (user_id, namn) gör att två flikar inte kan skapa två.
+  if (companyRows.length === 0) {
+    const seeded = await db
+      .from('companies')
+      .insert({ user_id: userId, namn: FORSTA_BOLAGET, kortnamn: 'OE' })
+      .select();
+    if (seeded.data) companyRows.push(...seeded.data);
+  }
 
   // Första inloggningen: lägg in grundbiblioteket så man kan logga ett pass
   // direkt i stället för att först mata in en övningskatalog.
@@ -96,8 +110,17 @@ export async function loadAll(db: Db, userId: string): Promise<HubState> {
       bodyweight: e.bodyweight,
     })),
     workouts,
+    companies: companyRows.map((c) => ({
+      id: c.id,
+      namn: c.namn,
+      kortnamn: c.kortnamn ?? undefined,
+      orgnr: c.orgnr ?? undefined,
+      aktiv: c.aktiv,
+      createdAt: c.created_at,
+    })),
     deals: (deals.data ?? []).map((d) => ({
       id: d.id,
+      companyId: d.company_id,
       kund: d.kund,
       titel: d.titel,
       status: d.status,
@@ -110,9 +133,13 @@ export async function loadAll(db: Db, userId: string): Promise<HubState> {
       kalla: d.kalla ?? undefined,
       note: d.note ?? undefined,
       createdAt: d.created_at,
+      ursprung: d.ursprung,
+      externId: d.extern_id ?? undefined,
+      synkadAt: d.synkad_at ?? undefined,
     })),
     fixedCosts: (fixedCosts.data ?? []).map((c) => ({
       id: c.id,
+      companyId: c.company_id,
       manad: c.manad,
       kategori: c.kategori,
       belopp: n(c.belopp),
@@ -411,9 +438,35 @@ export async function deleteReceiptImage(db: Db, path: string): Promise<void> {
 /* Företag                                                             */
 /* ------------------------------------------------------------------ */
 
+/** Namnet på bolaget som läggs in vid första inloggningen. */
+export const FORSTA_BOLAGET = 'Optimera Energi';
+
+export async function upsertCompany(db: Db, userId: string, c: Company): Promise<void> {
+  const row = {
+    user_id: userId,
+    namn: c.namn,
+    kortnamn: c.kortnamn ?? null,
+    orgnr: c.orgnr ?? null,
+    aktiv: c.aktiv,
+  };
+
+  const { error } = isUuid(c.id)
+    ? await db.from('companies').update(row).eq('id', c.id)
+    : await db.from('companies').insert(row);
+
+  check(error, 'Kunde inte spara bolaget');
+}
+
+/** Tar bort bolaget och, via on delete cascade, alla dess affärer och kostnader. */
+export async function deleteCompany(db: Db, id: string): Promise<void> {
+  const { error } = await db.from('companies').delete().eq('id', id);
+  check(error, 'Kunde inte ta bort bolaget');
+}
+
 export async function upsertDeal(db: Db, userId: string, d: Deal): Promise<void> {
   const row = {
     user_id: userId,
+    company_id: d.companyId,
     kund: d.kund,
     titel: d.titel,
     status: d.status,
@@ -427,6 +480,11 @@ export async function upsertDeal(db: Db, userId: string, d: Deal): Promise<void>
     stangd: d.stangd ?? null,
     kalla: d.kalla ?? null,
     note: d.note ?? null,
+    // Databasen kräver att extern_id följer ursprung. En manuell affär får
+    // aldrig ett externt id, och en CRM-affär måste ha ett.
+    ursprung: d.ursprung,
+    extern_id: d.ursprung === 'crm' ? (d.externId ?? null) : null,
+    synkad_at: d.synkadAt ?? null,
   };
 
   const { error } = isUuid(d.id)
@@ -444,6 +502,7 @@ export async function deleteDeal(db: Db, id: string): Promise<void> {
 export async function upsertFixedCost(db: Db, userId: string, c: FixedCost): Promise<void> {
   const row = {
     user_id: userId,
+    company_id: c.companyId,
     manad: c.manad,
     kategori: c.kategori,
     belopp: c.belopp,

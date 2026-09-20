@@ -15,6 +15,7 @@ import * as repo from './repo';
 import { supabaseBrowser } from './supabase/client';
 import {
   EMPTY_STATE,
+  type Company,
   type Deal,
   type Exercise,
   type FixedCost,
@@ -33,6 +34,16 @@ interface StoreValue {
   clearError: () => void;
   user: User | null;
   signOut: () => Promise<void>;
+
+  /**
+   * Bolaget dashboarden visar just nu. Null tills bolagen hämtats. Valet
+   * ligger i localStorage — det är ett vyval, inte data, och ska överleva
+   * en omladdning utan att kosta en databasrad.
+   */
+  activeCompany: Company | null;
+  setActiveCompany: (id: string) => void;
+  saveCompany: (company: Company) => Promise<void>;
+  removeCompany: (id: string) => Promise<void>;
 
   addReceipt: (receipt: Omit<Receipt, 'id' | 'createdAt'>) => Promise<void>;
   removeReceipt: (receipt: Receipt) => Promise<void>;
@@ -56,6 +67,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null);
 
   // Klienten skapas en gång. Skapas den om vid varje render tappas
   // sessionslyssnaren och realtidskopplingarna.
@@ -97,6 +109,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       sub.subscription.unsubscribe();
     };
   }, [refresh]);
+
+  useEffect(() => {
+    if (state.companies.length === 0) return;
+    const sparat = safeGet(AKTIVT_BOLAG);
+    const giltigt = activeCompanyId && state.companies.some((c) => c.id === activeCompanyId);
+    if (giltigt) return;
+    const kandidat = state.companies.find((c) => c.id === sparat) ?? state.companies[0];
+    setActiveCompanyId(kandidat.id);
+  }, [state.companies, activeCompanyId]);
+
+  const activeCompany = useMemo(
+    () => state.companies.find((c) => c.id === activeCompanyId) ?? null,
+    [state.companies, activeCompanyId],
+  );
 
   /**
    * Kör en skrivning och hämtar om allt efteråt.
@@ -173,8 +199,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await write((db) => repo.deleteWorkout(db, id));
       },
 
+      activeCompany,
+      setActiveCompany: (id) => {
+        setActiveCompanyId(id);
+        safeSet(AKTIVT_BOLAG, id);
+      },
+
+      saveCompany: async (company) => {
+        await write((db, uid) => repo.upsertCompany(db, uid, company));
+      },
+
+      removeCompany: async (id) => {
+        await write((db) => repo.deleteCompany(db, id));
+      },
+
       saveDeal: async (deal) => {
-        await write((db, uid) => repo.upsertDeal(db, uid, deal));
+        // En affär utan bolag hör till det aktiva. Saknas även det finns
+        // ingenting att spara mot — hellre ett tydligt fel än en rad som
+        // databasen ändå avvisar.
+        const companyId = deal.companyId || activeCompanyId;
+        if (!companyId) {
+          setError('Inget bolag valt.');
+          return;
+        }
+        await write((db, uid) => repo.upsertDeal(db, uid, { ...deal, companyId }));
       },
 
       removeDeal: async (id) => {
@@ -182,7 +230,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
 
       saveFixedCost: async (cost) => {
-        await write((db, uid) => repo.upsertFixedCost(db, uid, cost));
+        const companyId = cost.companyId || activeCompanyId;
+        if (!companyId) {
+          setError('Inget bolag valt.');
+          return;
+        }
+        await write((db, uid) => repo.upsertFixedCost(db, uid, { ...cost, companyId }));
       },
 
       removeFixedCost: async (id) => {
@@ -207,10 +260,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return repo.receiptImageUrl(db, path);
       },
     }),
-    [state, ready, error, user, write],
+    [state, ready, error, user, write, activeCompany, activeCompanyId],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+}
+
+const AKTIVT_BOLAG = 'jarvis.aktivtBolag';
+
+// localStorage kan kasta i privat läge och saknas vid SSR. Ett vyval är inte
+// värt en krasch.
+function safeGet(key: string): string | null {
+  try {
+    return typeof window === 'undefined' ? null : window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSet(key: string, value: string): void {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    /* ignoreras */
+  }
 }
 
 export function useStore(): StoreValue {

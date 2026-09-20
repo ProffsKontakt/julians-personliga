@@ -196,6 +196,31 @@ export interface Workout {
 /* ------------------------------------------------------------------ */
 
 /**
+ * Ett bolag. Optimera Energi är det första; fler ska till.
+ *
+ * Varje affär och fast kostnad hör till ett bolag, och dashboarden visar ett
+ * bolag i taget. Det är därför "aktivt bolag" är ett tillstånd i appen och
+ * inte en kolumn i databasen.
+ */
+export interface Company {
+  id: string;
+  namn: string;
+  /** Kortnamn i växlaren, t.ex. "OE". Saknas det härleds ett ur namnet. */
+  kortnamn?: string;
+  orgnr?: string;
+  aktiv: boolean;
+  createdAt: ISODateTime;
+}
+
+/**
+ * Varifrån raden kommer. `crm` betyder att ett externt system äger den:
+ * appen visar den men skriver den inte, annars skrivs ändringen över vid
+ * nästa synk.
+ */
+export const DEAL_URSPRUNG = ['manuell', 'crm'] as const;
+export type DealUrsprung = (typeof DEAL_URSPRUNG)[number];
+
+/**
  * Affärens läge i säljprocessen.
  *
  * `vunnen` och `fakturerad` är båda vunna — skillnaden är om pengarna kommit
@@ -221,6 +246,7 @@ export const DEAL_OPEN_STATUSES: readonly DealStatus[] = ['lead', 'offert', 'for
 
 export interface Deal {
   id: string;
+  companyId: string;
   kund: string;
   titel: string;
   status: DealStatus;
@@ -246,6 +272,11 @@ export interface Deal {
   kalla?: string;
   note?: string;
   createdAt: ISODateTime;
+  ursprung: DealUrsprung;
+  /** CRM:ets eget id. Finns bara när `ursprung` är `crm`. */
+  externId?: string;
+  /** När en synk senast skrev raden. */
+  synkadAt?: ISODateTime;
 }
 
 export const COST_CATEGORIES = [
@@ -269,6 +300,7 @@ export type CostCategory = (typeof COST_CATEGORIES)[number];
  */
 export interface FixedCost {
   id: string;
+  companyId: string;
   /** Månaden kostnaden hör till, som 'YYYY-MM'. */
   manad: string;
   kategori: CostCategory;
@@ -288,13 +320,14 @@ export interface HubState {
   exercises: Exercise[];
   programs: Program[];
   workouts: Workout[];
+  companies: Company[];
   deals: Deal[];
   fixedCosts: FixedCost[];
   /** Schemaversion — gör migrering möjlig när modellen ändras. */
   version: number;
 }
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export const EMPTY_STATE: HubState = {
   receipts: [],
@@ -303,6 +336,7 @@ export const EMPTY_STATE: HubState = {
   exercises: [],
   programs: [],
   workouts: [],
+  companies: [],
   deals: [],
   fixedCosts: [],
   version: SCHEMA_VERSION,
