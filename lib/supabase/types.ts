@@ -18,6 +18,13 @@ export type FoodCategoryCode =
   | 'spannmal' | 'fett-olja' | 'dryck' | 'godis-snacks' | 'fardigmat'
   | 'krydda-sas' | 'hushall' | 'ovrigt';
 
+export type DealStatusCode =
+  | 'lead' | 'offert' | 'forhandling' | 'vunnen' | 'fakturerad' | 'forlorad';
+
+export type CostCategoryCode =
+  | 'loner' | 'lokal' | 'fordon' | 'verktyg' | 'forsakring'
+  | 'marknadsforing' | 'system' | 'redovisning' | 'ovrigt';
+
 export type MuscleGroupCode =
   | 'brost' | 'rygg' | 'ben' | 'axlar' | 'armar' | 'core' | 'helkropp' | 'kondition';
 
@@ -124,6 +131,34 @@ export type WorkoutSetRow = {
   warmup: boolean;
 }
 
+export type DealRow = {
+  id: string;
+  user_id: string;
+  kund: string;
+  titel: string;
+  status: DealStatusCode;
+  varde: number;
+  rorlig_kostnad: number;
+  sannolikhet: number | null;
+  oppnad: string;
+  stangd: string | null;
+  kalla: string | null;
+  note: string | null;
+  created_at: string;
+  /** Genererad i databasen (varde - rorlig_kostnad) — skrivs aldrig av klienten. */
+  tb: number | null;
+}
+
+export type FixedCostRow = {
+  id: string;
+  user_id: string;
+  manad: string;
+  kategori: CostCategoryCode;
+  belopp: number;
+  note: string | null;
+  created_at: string;
+}
+
 /*
  * Insert och Update hålls avsiktligt lösa (Record<string, unknown>).
  * Raderna vi bygger för insert konstrueras för hand i lib/repo.ts och
@@ -185,12 +220,16 @@ export type Database = {
       programs: Table<ProgramRow>;
       workouts: Table<WorkoutRow, WorkoutRels>;
       workout_sets: Table<WorkoutSetRow, WorkoutSetRels>;
+      deals: Table<DealRow>;
+      fixed_costs: Table<FixedCostRow>;
     };
     Views: { [_ in never]: never };
     Functions: { [_ in never]: never };
     Enums: {
       account_type: AccountType;
       cashflow_type: CashflowType;
+      cost_category: CostCategoryCode;
+      deal_status: DealStatusCode;
       currency: CurrencyCode;
       food_category: FoodCategoryCode;
       holding_kind: HoldingKind;

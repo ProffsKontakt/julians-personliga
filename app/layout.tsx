@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#000000',
+  themeColor: '#07090c',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -39,7 +39,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // Utan klassen här hamnar hela appen i ljust läge oavsett systemtema.
     <html lang="sv" className="dark">
       <body>
-        <div className="ambient" aria-hidden="true" />
+        {/* Ambienten renderas av <Shell> (och av inloggningssidan), inte här:
+            den måste ligga inuti det data-tron-satta trädet för att kunna
+            ärva skärmens accentfärg. */}
         <StoreProvider>{children}</StoreProvider>
       </body>
     </html>

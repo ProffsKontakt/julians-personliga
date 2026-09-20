@@ -14,8 +14,6 @@ import { kr, pct } from '@/lib/utils';
 
 type View = 'portfolj' | 'exponering' | 'bevakning' | 'briefing';
 
-const ACCENTS = ['#0a84ff', '#bf5af0', '#26c185', '#fa6a22', '#40c8e0', '#ffd60a'];
-
 export default function KapitalPage() {
   const { state, ready, saveHolding, removeHolding, error: storeError } = useStore();
   const [view, setView] = useState<View>('portfolj');
@@ -45,7 +43,7 @@ export default function KapitalPage() {
             setEditing(undefined);
             setFormOpen(true);
           }}
-          className="p-2 text-[#0a84ff]"
+          className="p-2 text-[var(--accent)]"
           aria-label="Lägg till innehav"
         >
           <IconPlus className="w-6 h-6" />
@@ -144,8 +142,8 @@ function Portfolio({
       </div>
 
       {summary.unpricedCount > 0 && (
-        <GlassCard className="mt-3 flex items-start gap-3" shine={false}>
-          <IconWarning className="w-5 h-5 shrink-0 text-[#fa6a22]" />
+        <GlassCard className="mt-3 flex items-start gap-3">
+          <IconWarning className="w-5 h-5 shrink-0 text-[#ff6b4a]" />
           <p className="text-[14px] leading-relaxed text-white/70">
             {summary.unpricedCount} innehav saknar kurs och räknas till anskaffningsvärde. Det gör
             att {(summary.staleShare * 100).toFixed(0)} % av portföljvärdet ovan är en placeholder,
@@ -156,12 +154,11 @@ function Portfolio({
 
       <SectionTitle>Innehav</SectionTitle>
       <GlassCard className="!p-0 overflow-hidden">
-        <ul className="divide-y divide-white/[0.06]">
-          {valuations.map((v, i) => (
+        <ul className="divide-y divide-[var(--hair)]">
+          {valuations.map((v) => (
             <li key={v.holding.id} className="flex items-center">
               <div className="min-w-0 flex-1">
                 <Row
-                  accent={ACCENTS[i % ACCENTS.length]}
                   onClick={() => onEdit(v.holding)}
                   label={v.holding.name}
                   sub={[
@@ -178,7 +175,7 @@ function Portfolio({
                       {v.hasPrice && (
                         <span
                           className={`text-[12px] ${
-                            v.gain >= 0 ? 'text-[#26c185]' : 'text-[#fa6a22]'
+                            v.gain >= 0 ? 'text-[var(--accent)]' : 'text-[#ff6b4a]'
                           }`}
                         >
                           {pct(v.gainPct)}
@@ -190,7 +187,7 @@ function Portfolio({
               </div>
               <button
                 onClick={() => onRemove(v.holding.id)}
-                className="px-3 py-4 text-white/25 active:text-[#fa6a22]"
+                className="px-3 py-4 text-[var(--ink-3)] active:text-[#ff6b4a]"
                 aria-label={`Ta bort ${v.holding.name}`}
               >
                 <IconTrash className="w-5 h-5" />
@@ -205,8 +202,8 @@ function Portfolio({
           <SectionTitle>Vad som sticker ut</SectionTitle>
           <div className="space-y-3">
             {warnings.map((warning, i) => (
-              <GlassCard key={i} className="flex items-start gap-3" shine={false}>
-                <IconWarning className="w-5 h-5 shrink-0 text-[#fa6a22]" />
+              <GlassCard key={i} className="flex items-start gap-3">
+                <IconWarning className="w-5 h-5 shrink-0 text-[#ff6b4a]" />
                 <p className="text-[14px] leading-relaxed text-white/70">{warning}</p>
               </GlassCard>
             ))}
@@ -242,7 +239,7 @@ function Exposure({ holdings }: { holdings: Holding[] }) {
       <div className="flex flex-wrap gap-2">
         {(['tags', 'kind', 'account', 'currency'] as const).map((d) => (
           <button key={d} onClick={() => setDimension(d)}>
-            <Chip color={dimension === d ? '#0a84ff' : 'rgba(255,255,255,0.45)'}>{labels[d]}</Chip>
+            <Chip color={dimension === d ? 'var(--accent)' : 'rgba(255,255,255,0.45)'}>{labels[d]}</Chip>
           </button>
         ))}
       </div>
@@ -250,10 +247,9 @@ function Exposure({ holdings }: { holdings: Holding[] }) {
       <SectionTitle>{labels[dimension]}</SectionTitle>
       <GlassCard>
         <BarList
-          data={data.map((e, i) => ({
+          data={data.map((e) => ({
             label: e.label,
             value: e.value,
-            color: ACCENTS[i % ACCENTS.length],
             formatted: kr(e.value),
             meta: `${(e.share * 100).toFixed(0)} %`,
           }))}
@@ -261,7 +257,7 @@ function Exposure({ holdings }: { holdings: Holding[] }) {
       </GlassCard>
 
       {dimension === 'tags' && (
-        <p className="px-1 pt-3 text-[12px] leading-relaxed text-white/35">
+        <p className="px-1 pt-3 text-[12px] leading-relaxed text-[var(--ink-3)]">
           Ett innehav räknas fullt i varje tema det bär. Summan kan därför överstiga 100 % — det är
           meningen, teman överlappar.
         </p>
@@ -318,7 +314,7 @@ function Briefing({ holdings, totalValue }: { holdings: Holding[]; totalValue: n
     <Block className="!mt-0 space-y-0">
       <SectionTitle>Omvärldsbild</SectionTitle>
       <GlassCard className="space-y-3">
-        <p className="text-[14px] leading-relaxed text-white/55">
+        <p className="text-[14px] leading-relaxed text-[var(--ink-2)]">
           Modellen söker upp vad som händer just nu och ställer det mot dina innehav — vad som talar
           emot, vad som talar för, och vad som är värt att hålla ögonen på. Det är en lägesbild, inte
           rådgivning.
@@ -336,15 +332,15 @@ function Briefing({ holdings, totalValue }: { holdings: Holding[]; totalValue: n
           </span>
         </Button>
         {state.status === 'loading' && (
-          <p className="text-[13px] text-white/40">
+          <p className="text-[13px] text-[var(--ink-3)]">
             Det här tar en halv minut. Modellen gör riktiga webbsökningar.
           </p>
         )}
       </GlassCard>
 
       {state.status === 'error' && (
-        <GlassCard className="mt-3 flex items-start gap-3" shine={false}>
-          <IconWarning className="w-5 h-5 shrink-0 text-[#fa6a22]" />
+        <GlassCard className="mt-3 flex items-start gap-3">
+          <IconWarning className="w-5 h-5 shrink-0 text-[#ff6b4a]" />
           <p className="text-[14px] leading-relaxed text-white/75">{state.message}</p>
         </GlassCard>
       )}
@@ -362,7 +358,7 @@ function Briefing({ holdings, totalValue }: { holdings: Holding[]; totalValue: n
             <>
               <SectionTitle>Källor</SectionTitle>
               <GlassCard className="!p-0 overflow-hidden">
-                <ul className="divide-y divide-white/[0.06]">
+                <ul className="divide-y divide-[var(--hair)]">
                   {state.sources.map((source, i) => (
                     <li key={i}>
                       <a
@@ -374,7 +370,7 @@ function Briefing({ holdings, totalValue }: { holdings: Holding[]; totalValue: n
                         <span className="block truncate text-[14px] text-white">
                           {source.title}
                         </span>
-                        <span className="block truncate text-[12px] text-white/35">
+                        <span className="block truncate text-[12px] text-[var(--ink-3)]">
                           {safeHost(source.url)}
                         </span>
                       </a>
@@ -416,7 +412,7 @@ function Markdown({ text }: { text: string }) {
           return (
             <h3
               key={i}
-              className="pt-3 text-[13px] font-semibold uppercase tracking-[0.08em] text-white/45 first:pt-0"
+              className="pt-3 text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-3)] first:pt-0"
             >
               {trimmed.slice(3)}
             </h3>
@@ -432,7 +428,7 @@ function Markdown({ text }: { text: string }) {
         if (/^[-*]\s/.test(trimmed)) {
           return (
             <p key={i} className="flex gap-2 text-[14px] leading-relaxed text-white/75">
-              <span className="text-white/30">·</span>
+              <span className="text-[var(--ink-3)]">·</span>
               <span>{bold(trimmed.replace(/^[-*]\s/, ''))}</span>
             </p>
           );
@@ -529,7 +525,7 @@ function Bevakning({ holdings }: { holdings: Holding[] }) {
     <Block className="!mt-0 space-y-0">
       <SectionTitle>Vad händer i bolagen</SectionTitle>
       <GlassCard className="space-y-3">
-        <p className="text-[14px] leading-relaxed text-white/55">
+        <p className="text-[14px] leading-relaxed text-[var(--ink-2)]">
           BörsAPI ger rapportkalender, insynshandel och blankning för {kopplade.length} kopplade
           innehav. Den ger <strong className="font-semibold text-white/75">inga kurser</strong> —
           kursen matar du in själv eller hämtar från Finnhub.
@@ -541,7 +537,7 @@ function Bevakning({ holdings }: { holdings: Holding[] }) {
           </span>
         </Button>
         {kvot && (
-          <p className="text-[12px] text-white/35">
+          <p className="text-[12px] text-[var(--ink-3)]">
             API-kvot: {kvot.used} av {kvot.limit} använda, {kvot.remaining} kvar. Kalender,
             insyn och blankning drar ingen kvot — bara bolagssökningen gör det.
           </p>
@@ -549,8 +545,8 @@ function Bevakning({ holdings }: { holdings: Holding[] }) {
       </GlassCard>
 
       {fel && (
-        <GlassCard className="mt-3 flex items-start gap-3" shine={false}>
-          <IconWarning className="w-5 h-5 shrink-0 text-[#fa6a22]" />
+        <GlassCard className="mt-3 flex items-start gap-3">
+          <IconWarning className="w-5 h-5 shrink-0 text-[#ff6b4a]" />
           <p className="text-[14px] leading-relaxed text-white/75">{fel}</p>
         </GlassCard>
       )}
@@ -566,7 +562,7 @@ function Bevakning({ holdings }: { holdings: Holding[] }) {
                 <GlassCard key={h.id} className="space-y-3">
                   <div>
                     <h3 className="text-[16px] font-semibold text-white">{h.name}</h3>
-                    <p className="text-[12px] text-white/40">
+                    <p className="text-[12px] text-[var(--ink-3)]">
                       {[h.ticker, h.borsapiNamn !== h.name ? h.borsapiNamn : null]
                         .filter(Boolean)
                         .join(' · ')}
@@ -574,7 +570,7 @@ function Bevakning({ holdings }: { holdings: Holding[] }) {
                   </div>
 
                   {rad?.fel && (
-                    <p className="text-[12px] text-[#fa6a22]">{rad.fel}</p>
+                    <p className="text-[12px] text-[#ff6b4a]">{rad.fel}</p>
                   )}
 
                   <div className="grid grid-cols-1 gap-2">
@@ -609,9 +605,9 @@ function Bevakning({ holdings }: { holdings: Holding[] }) {
                           <span
                             className={
                               netto > 0
-                                ? 'text-[#26c185]'
+                                ? 'text-[var(--accent)]'
                                 : netto < 0
-                                  ? 'text-[#fa6a22]'
+                                  ? 'text-[#ff6b4a]'
                                   : 'text-white/70'
                             }
                           >
@@ -644,7 +640,7 @@ function Bevakning({ holdings }: { holdings: Holding[] }) {
             })}
           </div>
 
-          <p className="px-1 pt-3 text-[12px] leading-relaxed text-white/35">
+          <p className="px-1 pt-3 text-[12px] leading-relaxed text-[var(--ink-3)]">
             Insynshandel mäts över 90 dagar. Trettio dagar blir brus av en enskild transaktion,
             trehundrasextiofem jämnar ut allt som faktiskt säger något. Blankningsandelen räknar
             bara positioner över 0,5 %, eftersom det är där anmälningsplikten går.

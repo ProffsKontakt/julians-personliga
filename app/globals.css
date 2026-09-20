@@ -5,18 +5,27 @@
 /* Tailwind v4 måste se Konstas egna klasser för att inte skaka bort dem. */
 @source '../node_modules/konsta/react';
 
+/*
+ * FÄRGSPRÅK — TRON
+ *
+ * Två familjer, aldrig blandade i samma vy. Det är inte en stilgrej: i filmen
+ * äger varje rutnät exakt en färg (Flynns blå, Dillingers röda), och det är
+ * det som gör bilderna läsbara trots att nästan allt är svart.
+ *
+ *   Cyan  = det som byggs upp  → Hem, Kapital, Företag
+ *   Röd   = det som förbrukas  → Kvitton, Kraft
+ *
+ * Hexvärdena i cyanfamiljen är hämtade ur publicerade Tron Legacy-paletter
+ * (#6EE2FF återfinns i fem oberoende källor). Den röda familjen är förankrad
+ * i #FF410D — den enda röd-orangea färg som faktiskt är belagd från Legacy —
+ * och byggd därifrån. Ares röda är i filmen närmare klarröd än orange; den
+ * här paletten ligger på gränsen, mörkt brinnande snarare än gyllene, så att
+ * den aldrig förväxlas med Clus bärnsten (nyans 35–45°).
+ */
+
 @theme {
   /* Konsta härleder hela sitt färgsystem (--k-color-*) ur denna. */
-  --color-brand-primary: #0a84ff;
-  --color-brand-green: #30d158;
-  --color-brand-red: #ff453a;
-  --color-brand-orange: #ff9f0a;
-  --color-brand-purple: #bf5af0;
-  --color-brand-teal: #40c8e0;
-
-  /* Ytor under glaset. Mörkt först — Liquid Glass lever på kontrast. */
-  --color-canvas: #000000;
-  --color-canvas-raised: #0c0c0f;
+  --color-brand-primary: #6ee2ff;
 
   --font-sans:
     -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter',
@@ -25,17 +34,89 @@
   --font-ios:
     -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter',
     'Segoe UI', Roboto, system-ui, sans-serif;
+}
 
-  /* iOS 26 lutar åt generösa radier. */
-  --radius-ios: 1.25rem;
-  --radius-ios-lg: 1.75rem;
+/*
+ * Accenten ligger som VANLIG custom property, inte som @theme-token.
+ * Tailwind v4 bakar in @theme-värden som literaler i varje utility — hade
+ * accenten legat där hade [data-tron] inte kunnat byta någonting.
+ */
+:root {
+  /* Sidans svarta är blåsvart, aldrig #000: glöden behöver något att falla av i. */
+  --page: #07090c;
+  --page-deep: #040507;
+
+  /* Innehållsytor. Steget mellan två ytor ska landa kring 1.2:1 — under det
+     försvinner det, över det blir det grå plast. */
+  --surface-fill-top: rgb(255 255 255 / 0.03);
+  --surface-fill-mid: rgb(255 255 255 / 0.018);
+  --surface-fill-bot: rgb(255 255 255 / 0.012);
+
+  /* Kanten är aldrig enhetlig. Riktigt glas fångar ljus på ÖVERkanten.
+     0.30 på toppen ger 3.3:1 mot sidan och klarar därmed kravet på en
+     synlig kontrollgräns; underkanten är praktiskt taget osynlig. */
+  --edge-top: rgb(255 255 255 / 0.34);
+  --edge-mid: rgb(255 255 255 / 0.11);
+  --edge-low: rgb(255 255 255 / 0.05);
+  --edge-bot: rgb(255 255 255 / 0.03);
+
+  --ink: rgb(255 255 255 / 0.93);
+  --ink-2: rgb(255 255 255 / 0.58);
+  --ink-3: rgb(255 255 255 / 0.38);
+  --hair: rgb(255 255 255 / 0.1);
+
+  /* Koncentriska radier: inner = yttre − padding. */
+  --r-sheet: 28px;
+  --r-card: 20px;
+  --r-well: 12px;
+  --r-control: 12px;
+
+  /* Cyan är standard. Skärmar som ska brinna sätter [data-tron="rod"]. */
+  --accent: #6ee2ff;
+  --accent-hot: #0ef8f8;
+  --accent-deep: #267fb5;
+  --accent-fill: #0aa6c4;
+  --accent-rgb: 110 226 255;
+  --glow-a: 0.34;
+}
+
+/*
+ * Konsta härleder sina egna färger ur --k-color-primary, och .text-primary
+ * m.fl. går via var(--color-primary) → var(--k-color-primary). Genom att
+ * skriva om den här ÄRVER varje Konsta-komponent skärmens accent: knappar,
+ * aktiv tabb, länkar. Alternativet hade varit att sätta en klass på varje
+ * enskild <Button>, och att missa en.
+ */
+[data-tron='rod'] {
+  /* Båda leden sätts med flit. I produktionsbygget är --color-primary ett
+     var()-led vidare till --k-color-primary, men i utvecklingsbygget bakar
+     Tailwind in den som en literal — att bara skriva om det ena ledet ger
+     då en app som är rätt lokalt och fel i skarpt läge, eller tvärtom. */
+  --k-color-primary: #ff5a2d;
+  --k-color-ios-primary: #ff5a2d;
+  --k-color-ios-primary-shade: #e64a1f;
+  --k-color-ios-primary-tint: #ff7a52;
+  --color-primary: #ff5a2d;
+  --color-ios-primary: #ff5a2d;
+  --color-ios-primary-shade: #e64a1f;
+  --color-ios-primary-tint: #ff7a52;
+
+  --accent: #ff5a2d;
+  --accent-hot: #ff7a4a;
+  --accent-deep: #8e1f05;
+  --accent-fill: #ff410d;
+  --accent-rgb: 255 90 45;
+  /* Varmt blommar mer perceptuellt — samma alfa skulle skrika. */
+  --glow-a: 0.24;
+  --page: #0b0709;
+  --page-deep: #070406;
 }
 
 @layer base {
   html {
     /* Konstas <App>/<Page> är h-full/absolute — utan detta kollapsar de till 0. */
     height: 100%;
-    background: var(--color-canvas);
+    background: var(--page-deep);
     color-scheme: dark;
     /* Stoppar gummibandseffekten som annars avslöjar att det är en webbsida. */
     overscroll-behavior-y: none;
@@ -49,7 +130,7 @@
     background: transparent;
     margin: 0;
     font-family: var(--font-sans);
-    color: rgb(255 255 255 / 0.92);
+    color: var(--ink);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -63,11 +144,17 @@
 }
 
 /*
- * Ambient bakgrund.
+ * ═══════════════════════════════════════════════════════════════════
+ * AMBIENT
  *
- * Glas utan något bakom sig är bara en grå ruta. Den här mesh-gradienten
- * ger blur och mättnad något att arbeta på, och rör sig långsamt så att
- * ytorna känns levande utan att dra blicken.
+ * Ett nyckelljus i skärmens egen accentfärg, plus ett rutnät. Rutnätet är
+ * inte dekoration — det är det enda som ger blur och mättnad något att
+ * arbeta på. Utan struktur bakom glaset är en backdrop-filter mätbart
+ * osynlig, och ytan faller tillbaka till en grå ruta.
+ *
+ * Den gamla versionen hade fyra obesläktade nyanser (blå, lila, grön,
+ * orange) som medelvärdesbildades mot brungrå lera. En nyans per skärm.
+ * ═══════════════════════════════════════════════════════════════════
  */
 .ambient {
   position: fixed;
@@ -75,27 +162,181 @@
   z-index: -10;
   pointer-events: none;
   background:
-    radial-gradient(60rem 60rem at 12% -10%, rgba(10, 132, 255, 0.35), transparent 60%),
-    radial-gradient(45rem 45rem at 95% 8%, rgba(191, 90, 240, 0.28), transparent 62%),
-    radial-gradient(50rem 50rem at 78% 96%, rgba(48, 209, 88, 0.2), transparent 60%),
-    radial-gradient(40rem 40rem at 5% 88%, rgba(255, 159, 10, 0.18), transparent 60%),
-    #000;
-  animation: ambient-drift 42s ease-in-out infinite alternate;
+    radial-gradient(
+      46rem 32rem at 50% -8rem,
+      rgb(var(--accent-rgb) / var(--glow-a)),
+      transparent 68%
+    ),
+    radial-gradient(
+      26rem 20rem at 8% 108%,
+      rgb(var(--accent-rgb) / calc(var(--glow-a) * 0.38)),
+      transparent 72%
+    ),
+    var(--page);
 }
 
-@keyframes ambient-drift {
-  0% {
-    transform: scale(1) translate3d(0, 0, 0);
-  }
-  100% {
-    transform: scale(1.12) translate3d(-2%, -1.5%, 0);
-  }
+/* Rutnätet: kretskortslogik, ortogonalt, hårfint. Maskat så det tonar ut
+   mot kanterna i stället för att kaklas synligt ända ut. */
+.ambient::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      rgb(255 255 255 / 0.045) 0 1px,
+      transparent 1px 72px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      rgb(255 255 255 / 0.045) 0 1px,
+      transparent 1px 72px
+    );
+  -webkit-mask-image: radial-gradient(120% 90% at 50% 0%, #000 20%, transparent 78%);
+  mask-image: radial-gradient(120% 90% at 50% 0%, #000 20%, transparent 78%);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .ambient {
-    animation: none;
-  }
+/*
+ * Filmkorn. Egen lager, aldrig mix-blend-mode: en blandningsläge gör
+ * föräldern till en isolerad grupp, och då samplar syskonglaset ingenting.
+ */
+.ambient::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/*
+ * ═══════════════════════════════════════════════════════════════════
+ * GLAS
+ *
+ * Korten i rullflödet har medvetet INGEN backdrop-filter. Appen låg på
+ * 15–22 filterlager per skärm, långt bortom det som går att rita 60 gånger
+ * i sekunden på en telefon — och en hackig app känns billig oavsett hur
+ * fin paletten är. Filtren är i stället reserverade för navigationslagret,
+ * som är det enda som faktiskt har rörligt innehåll bakom sig.
+ *
+ * Utseendet blir detsamma: kortet ligger på ambientlagret, inte på
+ * rullande innehåll, så det fanns ingenting att sudda.
+ * ═══════════════════════════════════════════════════════════════════
+ */
+.pane {
+  position: relative;
+  border-radius: var(--r-card);
+  /* Gradientram via padding-box/border-box. Inte mask-composite: Chrome
+     renderar då varken masken eller en eventuell blur. */
+  border: 1px solid transparent;
+  background:
+    /* En hårfin accenttoning i överkanten. Utan den är fyllningen neutralt
+       vit över svart, och neutralt vit över svart ÄR grått — oavsett hur
+       låg alfan är. Det var det som fick den förra versionen att läsa som
+       plast i stället för som glas. */
+    radial-gradient(
+        100% 58% at 50% 0%,
+        rgb(var(--accent-rgb) / 0.17),
+        transparent 100%
+      )
+      padding-box,
+    linear-gradient(
+        180deg,
+        var(--surface-fill-top) 0%,
+        var(--surface-fill-mid) 38%,
+        var(--surface-fill-bot) 100%
+      )
+      padding-box,
+    linear-gradient(
+        180deg,
+        var(--edge-top) 0%,
+        var(--edge-mid) 26%,
+        var(--edge-low) 64%,
+        var(--edge-bot) 100%
+      )
+      border-box;
+  box-shadow:
+    /* Skarp ljuslinje längst upp innanför kanten. En mjuk, bred ljusbank
+       gjorde kortet suddigt i överkanten — ljus på glas är en reflex, inte
+       en dimma. */
+    inset 0 1px 0 rgb(255 255 255 / 0.1),
+    /* Kontaktskugga. */ 0 1px 1px rgb(0 0 0 / 0.6),
+    /* Bärande halo: skär ut kortet ur ambientglöden. */ 0 20px 44px -24px rgb(0 0 0 / 0.95);
+}
+
+/*
+ * Accentkanten. Ett indraget 1px-streck längs överkanten — ljuset sitter på
+ * kanten av en mörk kropp, aldrig i kroppen. Indraget horisontellt så att
+ * linjen aldrig når hörnen, precis som ljusribborna i filmen.
+ */
+.pane-accent::before {
+  content: '';
+  position: absolute;
+  inset: 0 14px auto 14px;
+  height: 1px;
+  border-radius: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(var(--accent-rgb) / 0.5) 16%,
+    rgb(var(--accent-rgb) / 0.75) 50%,
+    rgb(var(--accent-rgb) / 0.5) 84%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+/* Hero-ytan: samma logik, större radie, starkare glöd under. */
+.pane-hero {
+  border-radius: var(--r-sheet);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.12),
+    0 1px 1px rgb(0 0 0 / 0.6),
+    0 28px 64px -28px rgb(0 0 0 / 0.95),
+    0 0 48px -14px rgb(var(--accent-rgb) / 0.16);
+}
+
+/*
+ * Inläggning — ytan INUTI ett kort.
+ *
+ * På mörkt går nästlade ytor ljusare, inte mörkare: man kan inte gå under
+ * svart. Ingen kantreflex och ingen yttre skugga; signalen är just frånvaron
+ * av kortets ljuslogik, annars läses den som ytterligare en flytande låda.
+ */
+.well {
+  border-radius: var(--r-well);
+  background: rgb(255 255 255 / 0.06);
+  box-shadow: inset 0 1px 0 rgb(0 0 0 / 0.4);
+}
+
+/*
+ * Navigationslagret — det enda som får kosta en backdrop-filter.
+ * Mörk fyllning, inte vit: en vit fyllning kan bara addera ljus, en mörk
+ * klampar åt båda håll och håller texten läsbar över vad som helst.
+ */
+.chrome {
+  background: linear-gradient(180deg, rgb(12 14 19 / 0.82) 0%, rgb(8 9 13 / 0.95) 55%, rgb(7 8 12 / 0.98) 100%);
+  backdrop-filter: blur(24px) saturate(130%);
+}
+
+/*
+ * Konsta lägger ett eget 2 px-blurlager i navbar och tabbar UTÖVER .chrome.
+ * Två filter som suddar samma yta kostar två kompositeringspass och ger
+ * ingenting — .chrome gör redan hela jobbet på 24 px. Med den här regeln
+ * landar appen på två filterlager per skärm, vilket är budgeten för en
+ * telefon.
+ */
+.k-navbar > [class*='backdrop-blur-'],
+.k-toolbar > [class*='backdrop-blur-'] {
+  backdrop-filter: none;
+}
+
+/*
+ * Arkens fotrad ligger på en redan opak yta. Den behöver ingen backdrop-
+ * filter — och arken finns i DOM:en även när de är stängda, så varje sådan
+ * rad hade kostat ett lager dygnet runt.
+ */
+.sheet-footer {
+  background: linear-gradient(180deg, rgb(16 18 24 / 0.98), rgb(10 11 15 / 1));
 }
 
 /*
@@ -106,6 +347,14 @@
   padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
 }
 
+/* På desktop flyttar navigationen till en sidorad — då behövs ingen
+   bottenmarginal för en tabbar som inte finns. */
+@media (min-width: 1024px) {
+  .page-pad {
+    padding-bottom: 4rem;
+  }
+}
+
 /* Tabellsiffror som inte hoppar när värdet ändras. */
 .tnum {
   font-variant-numeric: tabular-nums;
@@ -114,5 +363,138 @@
 
 /* Diskret separator i glasytor — hårfin, aldrig en heldragen linje. */
 .hair-t {
-  border-top: 0.5px solid rgba(255, 255, 255, 0.12);
+  border-top: 0.5px solid var(--hair);
+}
+
+/* Versaler med brett spärrad tracking — Trons mikroetiketter. */
+.micro {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/*
+ * ═══════════════════════════════════════════════════════════════════
+ * TILLGÄNGLIGHET
+ *
+ * Grundutförandet klarar redan kontrastkraven — det här är inte en
+ * nödlösning utan tre lägen där genomskinlighet aktivt är fel.
+ * ═══════════════════════════════════════════════════════════════════
+ */
+@media (prefers-reduced-transparency: reduce) {
+  .pane,
+  .pane-hero {
+    background: #16161c;
+    border-color: rgb(255 255 255 / 0.28);
+  }
+
+  .chrome {
+    background: #101016;
+    backdrop-filter: none;
+  }
+
+  .ambient::before,
+  .ambient::after {
+    display: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --ink-2: rgb(255 255 255 / 0.78);
+    --ink-3: rgb(255 255 255 / 0.6);
+    --hair: rgb(255 255 255 / 0.24);
+  }
+
+  .pane,
+  .pane-hero {
+    background: #16161c;
+    border-color: rgb(255 255 255 / 0.4);
+  }
+}
+
+@media (forced-colors: active) {
+  .pane,
+  .pane-hero,
+  .well,
+  .chrome {
+    background: Canvas;
+    border: 1px solid CanvasText;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/*
+ * ═══════════════════════════════════════════════════════════════════
+ * KONTROLLER
+ *
+ * Fält och knappar följde tidigare ingen av kortens regler — de var
+ * ljusgrå plattor på en mörk yta, och det är där blicken först landar
+ * på en inloggningsskärm. Samma logik som korten: mörk kropp, ljus kant,
+ * accenten på fokus.
+ * ═══════════════════════════════════════════════════════════════════
+ */
+.field {
+  width: 100%;
+  border-radius: var(--r-control);
+  background: rgb(255 255 255 / 0.05);
+  border: 1px solid rgb(255 255 255 / 0.09);
+  box-shadow: inset 0 1px 0 rgb(0 0 0 / 0.35);
+  color: var(--ink);
+  outline: none;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.field::placeholder {
+  color: var(--ink-3);
+}
+
+.field:focus {
+  border-color: rgb(var(--accent-rgb) / 0.6);
+  box-shadow:
+    inset 0 1px 0 rgb(0 0 0 / 0.35),
+    0 0 0 3px rgb(var(--accent-rgb) / 0.14);
+}
+
+/*
+ * Primärknapp. Tonad accent, aldrig opak: en full accentfyllning blir en
+ * lysande platta som drar mer uppmärksamhet än innehållet den ska leda till.
+ * 84 % mättnad mäter 5.2:1 mot vit text — under ~78 % faller läsbarheten.
+ */
+.btn-tron {
+  background: color-mix(in oklab, var(--accent-deep) 84%, transparent);
+  border: 1px solid rgb(var(--accent-rgb) / 0.55);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.18),
+    0 0 24px -8px rgb(var(--accent-rgb) / 0.5);
+  color: #fff;
+  transition:
+    box-shadow 200ms ease,
+    transform 120ms ease;
+}
+
+.btn-tron:active {
+  transform: scale(0.985);
+}
+
+.btn-tron:disabled {
+  background: rgb(255 255 255 / 0.05);
+  border-color: rgb(255 255 255 / 0.09);
+  box-shadow: none;
+  color: var(--ink-3);
 }

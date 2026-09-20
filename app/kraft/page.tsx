@@ -173,8 +173,8 @@ function Logger() {
   return (
     <Block className="!mt-0 space-y-0">
       {saved && (
-        <GlassCard className="mt-3 flex items-center gap-3" shine={false}>
-          <IconCheck className="w-5 h-5 text-[#26c185]" />
+        <GlassCard className="mt-3 flex items-center gap-3">
+          <IconCheck className="w-5 h-5 text-[var(--accent)]" />
           <p className="text-[14px] text-white/80">Passet sparat.</p>
         </GlassCard>
       )}
@@ -185,9 +185,9 @@ function Logger() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Push A, Ben, Helkropp…"
-          className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-[16px] text-white outline-none placeholder:text-white/30 focus:border-[#0a84ff]/60"
+          className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-[16px] text-white outline-none placeholder:text-[var(--ink-3)] focus:border-[var(--accent)]/60"
         />
-        <div className="flex gap-3 text-[13px] text-white/45">
+        <div className="flex gap-3 text-[13px] text-[var(--ink-3)]">
           <span className="tnum">{entries.length} övningar</span>
           <span className="tnum">{totalSets} set</span>
           <span className="tnum">{num(volume)} kg volym</span>
@@ -218,7 +218,7 @@ function Logger() {
                     <h3 className="truncate text-[16px] font-semibold text-white">
                       {exercise?.name ?? 'Okänd övning'}
                     </h3>
-                    <p className="text-[12px] text-white/40">
+                    <p className="text-[12px] text-[var(--ink-3)]">
                       {exercise ? MUSCLE_LABELS[exercise.muscle] : ''}
                       {previous ? ` · senast ${previous.weight} kg × ${previous.reps}` : ' · första gången'}
                     </p>
@@ -227,19 +227,19 @@ function Logger() {
                     onClick={() =>
                       setEntries((prev) => prev.filter((e) => e.exerciseId !== entry.exerciseId))
                     }
-                    className="p-1 text-white/25 active:text-[#fa6a22]"
+                    className="p-1 text-[var(--ink-3)] active:text-[#ff6b4a]"
                     aria-label={`Ta bort ${exercise?.name}`}
                   >
                     <IconTrash className="w-5 h-5" />
                   </button>
                 </div>
 
-                <Inset className="divide-y divide-white/[0.06]">
+                <Inset className="divide-y divide-[var(--hair)]">
                   {entry.sets.map((set, i) => {
                     const est = estimate1RM(set.weight, set.reps);
                     return (
                       <div key={set.id} className="flex items-center gap-2 p-2.5">
-                        <span className="w-6 shrink-0 text-center text-[13px] font-medium text-white/35">
+                        <span className="w-6 shrink-0 text-center text-[13px] font-medium text-[var(--ink-3)]">
                           {i + 1}
                         </span>
                         <NumberField
@@ -248,19 +248,19 @@ function Logger() {
                           step={2.5}
                           onChange={(weight) => updateSet(entry.exerciseId, set.id, { weight })}
                         />
-                        <span className="text-white/25">×</span>
+                        <span className="text-[var(--ink-3)]">×</span>
                         <NumberField
                           value={set.reps}
                           suffix="rep"
                           step={1}
                           onChange={(reps) => updateSet(entry.exerciseId, set.id, { reps })}
                         />
-                        <span className="tnum w-16 shrink-0 text-right text-[12px] text-white/35">
+                        <span className="tnum w-16 shrink-0 text-right text-[12px] text-[var(--ink-3)]">
                           {est > 0 ? `${est.toFixed(0)} 1RM` : ''}
                         </span>
                         <button
                           onClick={() => removeSet(entry.exerciseId, set.id)}
-                          className="shrink-0 px-1 text-white/20 active:text-[#fa6a22]"
+                          className="shrink-0 px-1 text-[var(--ink-3)] active:text-[#ff6b4a]"
                           aria-label={`Ta bort set ${i + 1}`}
                         >
                           <IconTrash className="w-4 h-4" />
@@ -272,7 +272,7 @@ function Logger() {
 
                 <button
                   onClick={() => addSet(entry.exerciseId)}
-                  className="w-full rounded-2xl border border-dashed border-white/15 py-2.5 text-[14px] font-medium text-[#0a84ff] active:bg-white/[0.05]"
+                  className="w-full rounded-2xl border border-dashed border-white/15 py-2.5 text-[14px] font-medium text-[var(--accent)] active:bg-white/[0.05]"
                 >
                   + Set
                 </button>
@@ -324,7 +324,7 @@ function NumberField({
     <div className="flex min-w-0 flex-1 items-center gap-1 rounded-xl bg-white/[0.07]">
       <button
         onClick={() => onChange(Math.max(0, +(value - step).toFixed(2)))}
-        className="w-7 shrink-0 py-2 text-[16px] text-white/45 active:text-white"
+        className="w-7 shrink-0 py-2 text-[16px] text-[var(--ink-3)] active:text-white"
         aria-label={`Minska ${suffix}`}
       >
         −
@@ -337,12 +337,12 @@ function NumberField({
           const parsed = parseFloat(e.target.value.replace(',', '.'));
           onChange(Number.isFinite(parsed) ? parsed : 0);
         }}
-        className="tnum w-full min-w-0 bg-transparent py-2 text-center text-[15px] text-white outline-none placeholder:text-white/25"
+        className="tnum w-full min-w-0 bg-transparent py-2 text-center text-[15px] text-white outline-none placeholder:text-[var(--ink-3)]"
         aria-label={suffix}
       />
       <button
         onClick={() => onChange(+(value + step).toFixed(2))}
-        className="w-7 shrink-0 py-2 text-[16px] text-white/45 active:text-white"
+        className="w-7 shrink-0 py-2 text-[16px] text-[var(--ink-3)] active:text-white"
         aria-label={`Öka ${suffix}`}
       >
         +
@@ -386,7 +386,7 @@ function ExercisePicker({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Sök övning…"
-          className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-[16px] text-white outline-none placeholder:text-white/30 focus:border-[#0a84ff]/60"
+          className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-[16px] text-white outline-none placeholder:text-[var(--ink-3)] focus:border-[var(--accent)]/60"
         />
 
         {canCreate && (
@@ -405,10 +405,10 @@ function ExercisePicker({
         <div className="mt-4 space-y-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {Object.entries(grouped).map(([muscle, list]) => (
             <div key={muscle}>
-              <h3 className="px-1 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-white/40">
+              <h3 className="px-1 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-3)]">
                 {MUSCLE_LABELS[muscle as Exercise['muscle']]}
               </h3>
-              <Inset className="divide-y divide-white/[0.06]">
+              <Inset className="divide-y divide-[var(--hair)]">
                 {list.map((exercise) => (
                   <button
                     key={exercise.id}
@@ -418,7 +418,7 @@ function ExercisePicker({
                   >
                     <span className="text-[15px] text-white">{exercise.name}</span>
                     {taken.includes(exercise.id) && (
-                      <IconCheck className="w-5 h-5 text-[#26c185]" />
+                      <IconCheck className="w-5 h-5 text-[var(--accent)]" />
                     )}
                   </button>
                 ))}
@@ -498,12 +498,12 @@ function Progression({
               onClick={() => setSelected(exercise.id)}
               className={`shrink-0 rounded-full border px-3.5 py-2 text-[13px] font-medium transition-colors ${
                 active === exercise.id
-                  ? 'border-[#0a84ff]/50 bg-[#0a84ff]/20 text-white'
-                  : 'border-white/10 bg-white/[0.05] text-white/55'
+                  ? 'border-[var(--accent)]/50 bg-[var(--accent)]/20 text-white'
+                  : 'border-white/10 bg-white/[0.05] text-[var(--ink-2)]'
               }`}
             >
               {exercise.name}
-              <span className="tnum ml-1.5 text-white/35">{sessions}</span>
+              <span className="tnum ml-1.5 text-[var(--ink-3)]">{sessions}</span>
             </button>
           ))}
         </div>
@@ -550,7 +550,7 @@ function Progression({
             </>
           )}
 
-          <p className="px-1 pt-3 text-[12px] leading-relaxed text-white/35">
+          <p className="px-1 pt-3 text-[12px] leading-relaxed text-[var(--ink-3)]">
             {unloaded
               ? 'Övningen är loggad utan extern belastning, så 1RM och volym säger ingenting. Kurvan visar reps per pass i stället. Lägg in viktbältet som vikt om du börjar belasta.'
               : '1RM skattas med Epley (vikt × (1 + reps/30)). Formeln är rimlig upp till ungefär tio reps och spretar därefter — jämför set i samma repintervall när du läser kurvan.'}
@@ -612,7 +612,7 @@ function History({
             <ColumnChart
               data={weeks.map((w) => ({ label: w.week.split('-')[1], value: w.volume }))}
               format={(n) => `${num(n)} kg`}
-              color="#26c185"
+              color="var(--accent)"
             />
           </GlassCard>
         </>
@@ -625,20 +625,20 @@ function History({
             <div className="flex items-start justify-between gap-3 p-4 pb-2">
               <div className="min-w-0">
                 <p className="truncate text-[16px] font-semibold text-white">{workout.name}</p>
-                <p className="text-[12px] text-white/40">
+                <p className="text-[12px] text-[var(--ink-3)]">
                   {workout.date} · {num(workoutVolume(workout))} kg ·{' '}
                   {workout.exercises.reduce((a, e) => a + e.sets.length, 0)} set
                 </p>
               </div>
               <button
                 onClick={() => onRemove(workout.id)}
-                className="p-1.5 text-white/25 active:text-[#fa6a22]"
+                className="p-1.5 text-[var(--ink-3)] active:text-[#ff6b4a]"
                 aria-label={`Ta bort ${workout.name}`}
               >
                 <IconTrash className="w-5 h-5" />
               </button>
             </div>
-            <ul className="hair-t divide-y divide-white/[0.06]">
+            <ul className="hair-t divide-y divide-[var(--hair)]">
               {workout.exercises.map((entry) => (
                 <li key={entry.exerciseId}>
                   <Row

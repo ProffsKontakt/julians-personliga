@@ -166,41 +166,41 @@ export default function HoldingForm({
         </h2>
 
         <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.05] p-3">
-          <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.06em] text-white/45">
+          <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-3)]">
             Slå upp bolag
           </label>
           <input
             value={fraga}
             onChange={(e) => setFraga(e.target.value)}
             placeholder="Investor, VOLV-B, SE0015811963…"
-            className="w-full rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 text-[16px] text-white outline-none placeholder:text-white/30 focus:border-[#0a84ff]/60"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 text-[16px] text-white outline-none placeholder:text-[var(--ink-3)] focus:border-[var(--accent)]/60"
           />
 
           {form.borsapiId && (
-            <p className="mt-2 flex items-center gap-1.5 text-[12px] text-[#26c185]">
+            <p className="mt-2 flex items-center gap-1.5 text-[12px] text-[var(--accent)]">
               <IconCheck className="w-4 h-4" />
               Kopplat till {form.borsapiNamn}
             </p>
           )}
           {soker && (
-            <p className="mt-2 flex items-center gap-1.5 text-[12px] text-white/40">
+            <p className="mt-2 flex items-center gap-1.5 text-[12px] text-[var(--ink-3)]">
               <IconSparkle className="w-4 h-4 animate-pulse" /> Söker…
             </p>
           )}
           {sokFel && (
-            <p className="mt-2 flex items-start gap-1.5 text-[12px] leading-relaxed text-white/60">
-              <IconWarning className="w-4 h-4 shrink-0 text-[#fa6a22]" />
+            <p className="mt-2 flex items-start gap-1.5 text-[12px] leading-relaxed text-[var(--ink-2)]">
+              <IconWarning className="w-4 h-4 shrink-0 text-[#ff6b4a]" />
               {sokFel}
             </p>
           )}
           {traffar !== null && traffar.length === 0 && !soker && !sokFel && (
-            <p className="mt-2 text-[12px] text-white/40">
+            <p className="mt-2 text-[12px] text-[var(--ink-3)]">
               Ingen träff. Fonder och utländska aktier finns inte hos BörsAPI — fyll i namnet
               för hand så fungerar allt utom bolagsbevakningen.
             </p>
           )}
           {traffar && traffar.length > 0 && (
-            <ul className="mt-2 divide-y divide-white/[0.06] overflow-hidden rounded-xl bg-white/[0.04]">
+            <ul className="mt-2 divide-y divide-[var(--hair)] overflow-hidden rounded-xl bg-white/[0.04]">
               {traffar.map((t) => (
                 <li key={t.id}>
                   <button
@@ -210,7 +210,7 @@ export default function HoldingForm({
                   >
                     <span className="min-w-0">
                       <span className="block truncate text-[14px] text-white">{t.name}</span>
-                      <span className="block truncate text-[11px] text-white/40">
+                      <span className="block truncate text-[11px] text-[var(--ink-3)]">
                         {[t.ticker, t.sector, t.is_active ? null : 'avnoterad']
                           .filter(Boolean)
                           .join(' · ')}

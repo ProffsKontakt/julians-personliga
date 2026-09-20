@@ -51,7 +51,7 @@ export default function KontoPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Nytt lösenord"
               aria-label="Nytt lösenord"
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-[16px] text-white outline-none placeholder:text-white/30 focus:border-[#0a84ff]/60"
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-[16px] text-white outline-none placeholder:text-[var(--ink-3)] focus:border-[var(--accent)]/60"
             />
             <input
               type="password"
@@ -60,14 +60,14 @@ export default function KontoPage() {
               onChange={(e) => setRepeat(e.target.value)}
               placeholder="Upprepa"
               aria-label="Upprepa lösenord"
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-[16px] text-white outline-none placeholder:text-white/30 focus:border-[#0a84ff]/60"
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-[16px] text-white outline-none placeholder:text-[var(--ink-3)] focus:border-[var(--accent)]/60"
             />
 
             {tooShort && (
-              <p className="text-[12px] text-white/40">Minst 10 tecken.</p>
+              <p className="text-[12px] text-[var(--ink-3)]">Minst 10 tecken.</p>
             )}
             {mismatch && (
-              <p className="text-[12px] text-[#fa6a22]">Lösenorden är inte lika.</p>
+              <p className="text-[12px] text-[#ff6b4a]">Lösenorden är inte lika.</p>
             )}
 
             <Button rounded type="submit" disabled={!canSave}>
@@ -77,21 +77,21 @@ export default function KontoPage() {
 
           {state === 'klart' && (
             <div className="hair-t mt-3 flex items-center gap-2 pt-3">
-              <IconCheck className="w-5 h-5 text-[#26c185]" />
+              <IconCheck className="w-5 h-5 text-[var(--accent)]" />
               <p className="text-[13px] text-white/70">Lösenordet är bytt.</p>
             </div>
           )}
           {error && (
             <div className="hair-t mt-3 flex items-start gap-2 pt-3">
-              <IconWarning className="w-5 h-5 shrink-0 text-[#fa6a22]" />
+              <IconWarning className="w-5 h-5 shrink-0 text-[#ff6b4a]" />
               <p className="text-[13px] leading-relaxed text-white/70">{error}</p>
             </div>
           )}
         </GlassCard>
 
         <SectionTitle>Session</SectionTitle>
-        <GlassCard shine={false}>
-          <p className="mb-3 text-[13px] leading-relaxed text-white/45">
+        <GlassCard>
+          <p className="mb-3 text-[13px] leading-relaxed text-[var(--ink-3)]">
             Sessionen ligger kvar på den här enheten tills du loggar ut. Loggar du ut på telefonen
             påverkas inte datorn.
           </p>

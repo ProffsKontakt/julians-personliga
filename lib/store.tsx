@@ -15,7 +15,9 @@ import * as repo from './repo';
 import { supabaseBrowser } from './supabase/client';
 import {
   EMPTY_STATE,
+  type Deal,
   type Exercise,
+  type FixedCost,
   type Holding,
   type HubState,
   type Receipt,
@@ -39,6 +41,10 @@ interface StoreValue {
   addExercise: (exercise: Omit<Exercise, 'id'>) => Promise<Exercise | null>;
   addWorkout: (workout: Omit<Workout, 'id' | 'createdAt'>) => Promise<void>;
   removeWorkout: (id: string) => Promise<void>;
+  saveDeal: (deal: Deal) => Promise<void>;
+  removeDeal: (id: string) => Promise<void>;
+  saveFixedCost: (cost: FixedCost) => Promise<void>;
+  removeFixedCost: (id: string) => Promise<void>;
   uploadImage: (blob: Blob) => Promise<string | undefined>;
   imageUrl: (path: string) => Promise<string | null>;
 }
@@ -165,6 +171,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       removeWorkout: async (id) => {
         await write((db) => repo.deleteWorkout(db, id));
+      },
+
+      saveDeal: async (deal) => {
+        await write((db, uid) => repo.upsertDeal(db, uid, deal));
+      },
+
+      removeDeal: async (id) => {
+        await write((db) => repo.deleteDeal(db, id));
+      },
+
+      saveFixedCost: async (cost) => {
+        await write((db, uid) => repo.upsertFixedCost(db, uid, cost));
+      },
+
+      removeFixedCost: async (id) => {
+        await write((db) => repo.deleteFixedCost(db, id));
       },
 
       // Bilduppladdning hämtar inte om — kvittot är inte sparat ännu.

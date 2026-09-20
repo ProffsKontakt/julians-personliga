@@ -105,17 +105,18 @@ function LoginInner() {
 
   return (
     <App theme="ios" dark safeAreas>
+      <div className="ambient" aria-hidden="true" />
       <Page className="!bg-transparent">
         <div className="flex min-h-full items-center justify-center p-5">
           <div className="w-full max-w-sm">
             <h1 className="mb-1 text-center text-[34px] font-bold tracking-tight text-white">
               Jarvis
             </h1>
-            <p className="mb-6 text-center text-[15px] text-white/45">Din hubb.</p>
+            <p className="mb-6 text-center text-[15px] text-[var(--ink-3)]">Din hubb.</p>
 
             {state === 'reset-sent' ? (
-              <GlassCard className="flex flex-col items-center gap-3 py-8 text-center">
-                <IconCheck className="w-8 h-8 text-[#26c185]" />
+              <GlassCard accent className="flex flex-col items-center gap-3 py-8 text-center">
+                <IconCheck className="w-8 h-8 text-[var(--accent)]" />
                 <h2 className="text-[17px] font-semibold text-white">Återställningslänk skickad</h2>
                 <p className="max-w-[30ch] text-[14px] leading-relaxed text-white/55">
                   Kolla mejlen till {email}. Landar länken på fel adress är det Site URL i
@@ -123,13 +124,13 @@ function LoginInner() {
                 </p>
                 <button
                   onClick={() => setState('idle')}
-                  className="mt-1 text-[14px] font-medium text-[#0a84ff]"
+                  className="mt-1 text-[14px] font-medium text-[var(--accent)]"
                 >
                   Tillbaka
                 </button>
               </GlassCard>
             ) : (
-              <GlassCard>
+              <GlassCard accent>
                 <form onSubmit={login} className="flex flex-col gap-3">
                   <input
                     type="email"
@@ -140,7 +141,7 @@ function LoginInner() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Mejladress"
                     aria-label="Mejladress"
-                    className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-[16px] text-white outline-none placeholder:text-white/30 focus:border-[#0a84ff]/60"
+                    className="field px-4 py-3 text-[16px]"
                   />
                   <input
                     type="password"
@@ -150,9 +151,9 @@ function LoginInner() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Lösenord"
                     aria-label="Lösenord"
-                    className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-[16px] text-white outline-none placeholder:text-white/30 focus:border-[#0a84ff]/60"
+                    className="field px-4 py-3 text-[16px]"
                   />
-                  <Button large rounded type="submit" disabled={!canSubmit}>
+                  <Button large rounded type="submit" disabled={!canSubmit} className="btn-tron">
                     <span className="flex items-center gap-2">
                       {state === 'sending' && <IconSparkle className="w-5 h-5 animate-pulse" />}
                       {state === 'sending' ? 'Loggar in…' : 'Logga in'}
@@ -162,7 +163,7 @@ function LoginInner() {
 
                 {error && (
                   <div className="hair-t mt-3 flex items-start gap-2 pt-3">
-                    <IconWarning className="w-5 h-5 shrink-0 text-[#fa6a22]" />
+                    <IconWarning className="w-5 h-5 shrink-0 text-[#ff6b4a]" />
                     <p className="text-[13px] leading-relaxed text-white/70">{error}</p>
                   </div>
                 )}
@@ -171,7 +172,7 @@ function LoginInner() {
                   type="button"
                   onClick={() => void resetPassword()}
                   disabled={state === 'sending'}
-                  className="mt-3 w-full text-center text-[13px] font-medium text-white/40 active:text-[#0a84ff]"
+                  className="mt-3 w-full text-center text-[13px] font-medium text-white/40 active:text-[var(--accent)]"
                 >
                   Glömt lösenordet?
                 </button>

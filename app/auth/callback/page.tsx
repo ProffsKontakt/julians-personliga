@@ -101,6 +101,7 @@ function CallbackInner() {
 
   return (
     <App theme="ios" dark safeAreas>
+      <div className="ambient" aria-hidden="true" />
       <Page className="!bg-transparent">
         <div className="flex min-h-full items-center justify-center p-5">
           <div className="w-full max-w-sm">
@@ -110,9 +111,9 @@ function CallbackInner() {
             <GlassCard className="flex flex-col items-center gap-3 py-8 text-center">
               {fel ? (
                 <>
-                  <IconWarning className="w-7 h-7 text-[#fa6a22]" />
+                  <IconWarning className="w-7 h-7 text-[#ff6b4a]" />
                   <p className="max-w-[32ch] text-[14px] leading-relaxed text-white/70">{fel}</p>
-                  <a href="/login" className="mt-1 text-[14px] font-medium text-[#0a84ff]">
+                  <a href="/login" className="mt-1 text-[14px] font-medium text-[var(--accent)]">
                     Till inloggningen
                   </a>
                 </>

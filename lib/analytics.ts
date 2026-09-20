@@ -1,12 +1,17 @@
 import { CATEGORY_META, type Tier } from './food';
-import type {
-  CashFlow,
-  Currency,
-  FoodCategory,
-  Holding,
-  Receipt,
-  ReceiptItem,
-  Workout,
+import {
+  DEAL_OPEN_STATUSES,
+  WON_STATUSES,
+  type CashFlow,
+  type Currency,
+  type Deal,
+  type DealStatus,
+  type FixedCost,
+  type FoodCategory,
+  type Holding,
+  type Receipt,
+  type ReceiptItem,
+  type Workout,
 } from './types';
 import { monthKey } from './utils';
 
@@ -490,4 +495,197 @@ export function isoWeek(isoDate: string): string {
   const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
   const week = Math.ceil(((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
   return `${date.getUTCFullYear()}-v${String(week).padStart(2, '0')}`;
+}
+
+/* ================================================================== */
+/* FÖRETAG                                                             */
+/* ================================================================== */
+
+/**
+ * Täckningsbidrag och täckningsgrad.
+ *
+ *   TB = intäkt − rörliga kostnader
+ *   TG = TB / intäkt
+ *
+ * TB svarar på "vad blev kvar av den här affären till att betala hyra, löner
+ * och vinst". TG säger samma sak i procent och är det som gör två olika stora
+ * affärer jämförbara. Resultatet får man först när de fasta kostnaderna dragits
+ * av — och de hör till en månad, inte till en affär.
+ */
+export function tb(deal: Deal): number {
+  return deal.varde - deal.rorligKostnad;
+}
+
+/** Täckningsgrad i procent. Odefinierad vid nollintäkt — då returneras undefined. */
+export function tg(deal: Deal): number | undefined {
+  if (deal.varde <= 0) return undefined;
+  return (tb(deal) / deal.varde) * 100;
+}
+
+export function isWon(deal: Deal): boolean {
+  return WON_STATUSES.includes(deal.status);
+}
+
+export function isOpen(deal: Deal): boolean {
+  return DEAL_OPEN_STATUSES.includes(deal.status);
+}
+
+export interface BusinessSummary {
+  /** Vunnen intäkt, exklusive moms. */
+  omsattning: number;
+  /** Summa täckningsbidrag på vunna affärer. */
+  tb: number;
+  /** TB som andel av omsättningen, i procent. Undefined utan omsättning. */
+  tg?: number;
+  fastaKostnader: number;
+  /** TB minus fasta kostnader. Det enda talet som är "vinst". */
+  resultat: number;
+  /**
+   * Resultat som andel av omsättningen. Medvetet INTE kallat vinstmarginal:
+   * modellen känner varken avskrivningar, ränta eller skatt, så talet är ett
+   * rörelseresultat före allt sådant. Att kalla det vinst hade varit att
+   * lova en precision som inte finns.
+   */
+  resultatmarginal?: number;
+  antalVunna: number;
+  antalForlorade: number;
+  /** Andel vunna av alla avgjorda affärer, i procent. Undefined utan avgjorda. */
+  vinstfrekvens?: number;
+  snittaffar?: number;
+  /** Summa värde på affärer som fortfarande är öppna. */
+  pipeline: number;
+  /**
+   * Pipeline viktad med sannolikhet. Affärer utan satt sannolikhet räknas
+   * INTE med — de hamnar i `pipelineUtanSannolikhet` i stället, så att
+   * siffran aldrig bygger på en gissad procentsats.
+   */
+  viktadPipeline: number;
+  pipelineUtanSannolikhet: number;
+  pipelineUtanSannolikhetAntal: number;
+  /** Medianantal dagar från öppnad till stängd på vunna affärer. */
+  saljcykelDagar?: number;
+  /** Hur många affärer medianen vilar på. */
+  saljcykelAntal: number;
+  /** Vunnen men ännu inte fakturerad intäkt — pengar som inte kommit in. */
+  ejFakturerat: number;
+}
+
+/**
+ * Sammanfattar affärerna. `manad` ('YYYY-MM') begränsar till affärer som
+ * stängdes den månaden; utan den räknas allt.
+ */
+export function summarizeBusiness(
+  deals: Deal[],
+  fixedCosts: FixedCost[],
+  manad?: string,
+): BusinessSummary {
+  const inPeriod = (d: Deal) => !manad || (d.stangd ? d.stangd.slice(0, 7) === manad : false);
+
+  const won = deals.filter((d) => isWon(d) && inPeriod(d));
+  const lost = deals.filter((d) => d.status === 'forlorad' && inPeriod(d));
+  // Pipeline är alltid nuläget — en öppen affär hör inte till någon månad.
+  const open = deals.filter(isOpen);
+
+  const omsattning = won.reduce((a, d) => a + d.varde, 0);
+  const tbSum = won.reduce((a, d) => a + tb(d), 0);
+
+  const fasta = fixedCosts
+    .filter((c) => !manad || c.manad === manad)
+    .reduce((a, c) => a + c.belopp, 0);
+
+  const resultat = tbSum - fasta;
+  const avgjorda = won.length + lost.length;
+
+  const medSannolikhet = open.filter((d) => typeof d.sannolikhet === 'number');
+  const utanSannolikhet = open.filter((d) => typeof d.sannolikhet !== 'number');
+
+  // Median, inte medelvärde: en enda utdragen affär ska inte flytta siffran.
+  const cykler = won
+    .filter((d) => d.stangd)
+    .map((d) => dagarMellan(d.oppnad, d.stangd!))
+    .filter((n) => Number.isFinite(n) && n >= 0)
+    .sort((a, b) => a - b);
+
+  return {
+    omsattning,
+    tb: tbSum,
+    tg: omsattning > 0 ? (tbSum / omsattning) * 100 : undefined,
+    fastaKostnader: fasta,
+    resultat,
+    resultatmarginal: omsattning > 0 ? (resultat / omsattning) * 100 : undefined,
+    antalVunna: won.length,
+    antalForlorade: lost.length,
+    vinstfrekvens: avgjorda > 0 ? (won.length / avgjorda) * 100 : undefined,
+    snittaffar: won.length > 0 ? omsattning / won.length : undefined,
+    pipeline: open.reduce((a, d) => a + d.varde, 0),
+    viktadPipeline: medSannolikhet.reduce((a, d) => a + d.varde * (d.sannolikhet! / 100), 0),
+    pipelineUtanSannolikhet: utanSannolikhet.reduce((a, d) => a + d.varde, 0),
+    pipelineUtanSannolikhetAntal: utanSannolikhet.length,
+    saljcykelDagar: cykler.length > 0 ? median(cykler) : undefined,
+    saljcykelAntal: cykler.length,
+    ejFakturerat: deals
+      .filter((d) => d.status === 'vunnen' && inPeriod(d))
+      .reduce((a, d) => a + d.varde, 0),
+  };
+}
+
+export interface BusinessMonth {
+  manad: string;
+  omsattning: number;
+  tb: number;
+  fastaKostnader: number;
+  resultat: number;
+}
+
+/**
+ * Resultat per månad. Månader utan vare sig affärer eller kostnader utelämnas
+ * — en tom stapel skulle påstå att resultatet var noll, inte att månaden inte
+ * finns i underlaget.
+ */
+export function businessByMonth(deals: Deal[], fixedCosts: FixedCost[]): BusinessMonth[] {
+  const map = new Map<string, BusinessMonth>();
+  const get = (manad: string) =>
+    map.get(manad) ?? { manad, omsattning: 0, tb: 0, fastaKostnader: 0, resultat: 0 };
+
+  for (const deal of deals) {
+    if (!isWon(deal) || !deal.stangd) continue;
+    const manad = deal.stangd.slice(0, 7);
+    const entry = get(manad);
+    entry.omsattning += deal.varde;
+    entry.tb += tb(deal);
+    map.set(manad, entry);
+  }
+
+  for (const cost of fixedCosts) {
+    const entry = get(cost.manad);
+    entry.fastaKostnader += cost.belopp;
+    map.set(cost.manad, entry);
+  }
+
+  return [...map.values()]
+    .map((m) => ({ ...m, resultat: m.tb - m.fastaKostnader }))
+    .sort((a, b) => a.manad.localeCompare(b.manad));
+}
+
+/** Öppna affärer per status, i pipelinens ordning. */
+export function pipelineByStatus(deals: Deal[]): { status: DealStatus; value: number; count: number }[] {
+  return DEAL_OPEN_STATUSES.map((status) => {
+    const matching = deals.filter((d) => d.status === status);
+    return {
+      status,
+      value: matching.reduce((a, d) => a + d.varde, 0),
+      count: matching.length,
+    };
+  });
+}
+
+function dagarMellan(from: string, to: string): number {
+  const a = new Date(from + 'T00:00:00Z').getTime();
+  const b = new Date(to + 'T00:00:00Z').getTime();
+  return Math.round((b - a) / 86400000);
+}
+
+function median(sorted: number[]): number {
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }
