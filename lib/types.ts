@@ -102,6 +102,13 @@ export interface Holding {
   /** Fri taggning: "halvledare", "utdelning", "USA". Driver exponeringsvyn. */
   tags: string[];
   createdAt: ISODateTime;
+  /**
+   * Bolagets id hos borsapi.se. Sätts när innehavet kopplats till ett riktigt
+   * bolag, och är det som gör rapportkalender, insynshandel och blankning
+   * möjliga att hämta. Null för fonder och utländska aktier.
+   */
+  borsapiId?: string;
+  borsapiNamn?: string;
 }
 
 export const CASHFLOW_TYPES = ['insattning', 'uttag', 'utdelning', 'avgift'] as const;

@@ -30,6 +30,7 @@ Kopiera `.env.example` till `.env.local`:
 | `ANTHROPIC_API_KEY` | Kvittotolkning, marknadsbriefing | Manuell inmatning |
 | `ANTHROPIC_WORKSPACE_ID` | Bara om nyckeln saknar workspace | Se nedan |
 | `FINNHUB_API_KEY` | Automatisk kurshämtning | Kurser matas in för hand |
+| `BORSDATA_API_KEY` | Bolagsbevakning (svenska aktier) | Fliken Bolagen är tom |
 
 **Fallgrop med Anthropic-nyckeln.** En nyckel skapad på *organisationsnivå*
 tillhör ingen workspace, och då avvisar Anthropic varje anrop med 400 och ber om
@@ -65,6 +66,16 @@ siffra. Exponeringsvyn delar upp portföljen på teman, tillgångsslag, konto el
 valuta, och koncentrationsvarningarna pekar ut när ett innehav eller en valuta
 blivit för dominerande.
 
+*Bolagen* hämtar rapportkalender, insynshandel och blankningspositioner från
+borsapi.se för de innehav som kopplats till ett riktigt bolag. Kopplingen görs
+genom att slå upp bolaget när innehavet läggs in, vilket också gör stavfel i
+namnet ointressanta.
+
+**BörsAPI ger inga kurser.** Hela API:t saknar pris-, kurs- och
+börsvärdesfält — bolagsobjektet är namn, ticker, ISIN, sektor och
+noteringsstatus. Kursen kommer fortfarande från manuell inmatning eller
+Finnhub. Det BörsAPI svarar på är en annan fråga: vad som händer i bolagen.
+
 *Omvärlden* gör riktiga webbsökningar via Claude och ställer nyhetsläget mot dina
 faktiska innehav — vad som talar emot, vad som talar för, vad som är värt att hålla
 ögonen på, och vad modellen inte kunde verifiera. Det är en lägesbild med källor,
@@ -80,8 +91,10 @@ mäts i reps i stället för 1RM, eftersom 1RM på noll kilo inte betyder någon
 
 ## Var datan bor
 
-**Supabase (Postgres), region eu-north-1.** Inloggning sker med en engångslänk
-per mejl — inget lösenord att komma ihåg eller läcka.
+**Supabase (Postgres), region eu-north-1.** Inloggning med mejl och lösenord.
+Hubben har exakt ett konto, och en databastrigger på `auth.users` avvisar varje
+registrering med någon annan adress — låset ligger i databasen eftersom
+gränssnittet går att gå förbi genom att anropa auth-API:t direkt.
 
 Varje tabell har radnivåsäkerhet påslagen med `force row level security`, och en
 policy som låser raden till `auth.uid()`. Det innebär att den publika nyckeln i

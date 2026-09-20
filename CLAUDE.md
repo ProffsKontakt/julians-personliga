@@ -75,7 +75,8 @@ Reglerna står i `components/charts.tsx` och gäller varje nytt diagram:
 
 ## Datalagret
 
-**Supabase (Postgres), eu-north-1.** Inloggning med engångslänk per mejl.
+**Supabase (Postgres), eu-north-1.** Inloggning med mejl och lösenord, ett enda
+konto. En trigger på `auth.users` avvisar registrering med annan adress.
 
 - `lib/repo.ts` äger varje anrop mot databasen och all kartläggning mellan
   databasens snake_case och domänmodellens camelCase. Vyer pratar aldrig med
@@ -101,6 +102,18 @@ Reglerna står i `components/charts.tsx` och gäller varje nytt diagram:
 5. **Omdirigeringsmål valideras.** `/auth/callback` släpper bara igenom interna
    sökvägar; en öppen omdirigering där skickar användaren vidare med sessionen
    nyss satt.
+
+## Externa datakällor
+
+- **BörsAPI (`borsapi.se`)** — `lib/borsapi.ts`. Bearer-auth, inte query-param.
+  Ger fundamenta och händelser: rapportkalender, insynshandel, blankning.
+  **Ger inga kurser** — specen saknar prisfält helt. Föreslå den aldrig som
+  kurskälla.
+  Kvot: kalender, insyn och blankning är gratis; bolagssökning kostar. Därför
+  är sökningen debouncad 500 ms och cachad ett dygn.
+- **Finnhub** — kurser. Gratisnivån täcker i praktiken bara amerikanska aktier.
+- Nycklar till externa källor stannar på servern. Bara `NEXT_PUBLIC_*` når
+  webbläsaren, och där ligger bara Supabase-URL och den publika nyckeln.
 
 ## Innan du säger att något är klart
 

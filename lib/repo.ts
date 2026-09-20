@@ -73,6 +73,8 @@ export async function loadAll(db: Db, userId: string): Promise<HubState> {
       account: h.account,
       tags: h.tags ?? [],
       createdAt: h.created_at,
+      borsapiId: h.borsapi_id ?? undefined,
+      borsapiNamn: h.borsapi_namn ?? undefined,
     })),
     cashflows: (cashflows.data ?? []).map((c) => ({
       id: c.id,
@@ -244,6 +246,9 @@ export async function upsertHolding(db: Db, userId: string, h: Holding): Promise
     currency: h.currency,
     account: h.account,
     tags: h.tags,
+    borsapi_id: h.borsapiId ?? null,
+    borsapi_namn: h.borsapiNamn ?? null,
+    borsapi_uppdaterad: h.borsapiId ? new Date().toISOString() : null,
   };
 
   // Ett id som inte är en uuid betyder att raden är ny och skapad i klienten.

@@ -12,7 +12,7 @@ import { useStore } from '@/lib/store';
 import type { Holding } from '@/lib/types';
 import { kr, pct } from '@/lib/utils';
 
-type View = 'portfolj' | 'exponering' | 'briefing';
+type View = 'portfolj' | 'exponering' | 'bevakning' | 'briefing';
 
 const ACCENTS = ['#0a84ff', '#bf5af0', '#26c185', '#fa6a22', '#40c8e0', '#ffd60a'];
 
@@ -91,6 +91,8 @@ export default function KapitalPage() {
         />
       ) : view === 'exponering' ? (
         <Exposure holdings={holdings} />
+      ) : view === 'bevakning' ? (
+        <Bevakning holdings={holdings} />
       ) : (
         <Briefing holdings={holdings} totalValue={summary.marketValue} />
       )}
@@ -454,5 +456,201 @@ function bold(text: string) {
     ) : (
       <span key={i}>{part}</span>
     ),
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Bolagsbevakning via BörsAPI                                         */
+/* ------------------------------------------------------------------ */
+
+interface BevakningRad {
+  bolagId: string;
+  nastaRapport: { datum: string; typ: string; period: string | null; bekraftat: boolean } | null;
+  insyn: { koper: number; saljer: number; nettoSek: number; vdNettoSek: number } | null;
+  blankning: { andel: number; antalPositioner: number; senast: string | null } | null;
+  fel: string | null;
+}
+
+const RAPPORTTYP: Record<string, string> = {
+  INTERIM: 'Delårsrapport',
+  YEAR_END: 'Bokslutskommuniké',
+  ANNUAL_REPORT: 'Årsredovisning',
+  DIVIDEND: 'Utdelning',
+  AGM: 'Årsstämma',
+};
+
+function Bevakning({ holdings }: { holdings: Holding[] }) {
+  const kopplade = useMemo(() => holdings.filter((h) => h.borsapiId), [holdings]);
+  const [rader, setRader] = useState<BevakningRad[] | null>(null);
+  const [laddar, setLaddar] = useState(false);
+  const [fel, setFel] = useState<string | null>(null);
+  const [kvot, setKvot] = useState<{ used: number; limit: number; remaining: number } | null>(null);
+
+  async function hamta() {
+    setLaddar(true);
+    setFel(null);
+    try {
+      const res = await fetch('/api/borsdata/bevakning', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bolagIds: kopplade.map((h) => h.borsapiId) }),
+      });
+      const payload = await res.json();
+      if (!res.ok) {
+        setFel(payload.message ?? 'Kunde inte hämta bolagsdata.');
+        return;
+      }
+      setRader(payload.bevakningar as BevakningRad[]);
+      setKvot(payload.kvot ?? null);
+    } catch (e) {
+      setFel(e instanceof Error ? e.message : 'Nätverksfel.');
+    } finally {
+      setLaddar(false);
+    }
+  }
+
+  const perBolag = useMemo(
+    () => new Map((rader ?? []).map((r) => [r.bolagId, r])),
+    [rader],
+  );
+
+  if (kopplade.length === 0) {
+    return (
+      <Block className="!mt-6">
+        <EmptyState
+          title="Inga innehav är kopplade till ett bolag"
+          body="Öppna ett innehav och slå upp bolaget i sökrutan högst upp. Då kan appen hämta rapportkalender, insynshandel och blankning för exakt rätt bolag. Fonder och utländska aktier finns inte hos BörsAPI."
+        />
+      </Block>
+    );
+  }
+
+  return (
+    <Block className="!mt-0 space-y-0">
+      <SectionTitle>Vad händer i bolagen</SectionTitle>
+      <GlassCard className="space-y-3">
+        <p className="text-[14px] leading-relaxed text-white/55">
+          BörsAPI ger rapportkalender, insynshandel och blankning för {kopplade.length} kopplade
+          innehav. Den ger <strong className="font-semibold text-white/75">inga kurser</strong> —
+          kursen matar du in själv eller hämtar från Finnhub.
+        </p>
+        <Button rounded onClick={() => void hamta()} disabled={laddar}>
+          <span className="flex items-center gap-2">
+            <IconSparkle className={`w-5 h-5 ${laddar ? 'animate-pulse' : ''}`} />
+            {laddar ? 'Hämtar…' : 'Hämta bolagsdata'}
+          </span>
+        </Button>
+        {kvot && (
+          <p className="text-[12px] text-white/35">
+            API-kvot: {kvot.used} av {kvot.limit} använda, {kvot.remaining} kvar. Kalender,
+            insyn och blankning drar ingen kvot — bara bolagssökningen gör det.
+          </p>
+        )}
+      </GlassCard>
+
+      {fel && (
+        <GlassCard className="mt-3 flex items-start gap-3" shine={false}>
+          <IconWarning className="w-5 h-5 shrink-0 text-[#fa6a22]" />
+          <p className="text-[14px] leading-relaxed text-white/75">{fel}</p>
+        </GlassCard>
+      )}
+
+      {rader && (
+        <>
+          <SectionTitle>Innehav</SectionTitle>
+          <div className="space-y-3">
+            {kopplade.map((h) => {
+              const rad = perBolag.get(h.borsapiId!);
+              const netto = rad?.insyn?.nettoSek ?? 0;
+              return (
+                <GlassCard key={h.id} className="space-y-3">
+                  <div>
+                    <h3 className="text-[16px] font-semibold text-white">{h.name}</h3>
+                    <p className="text-[12px] text-white/40">
+                      {[h.ticker, h.borsapiNamn !== h.name ? h.borsapiNamn : null]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                  </div>
+
+                  {rad?.fel && (
+                    <p className="text-[12px] text-[#fa6a22]">{rad.fel}</p>
+                  )}
+
+                  <div className="grid grid-cols-1 gap-2">
+                    <Row
+                      label="Nästa rapport"
+                      sub={
+                        rad?.nastaRapport
+                          ? [
+                              RAPPORTTYP[rad.nastaRapport.typ] ?? rad.nastaRapport.typ,
+                              rad.nastaRapport.period,
+                              rad.nastaRapport.bekraftat ? 'bekräftat' : 'preliminärt',
+                            ]
+                              .filter(Boolean)
+                              .join(' · ')
+                          : 'Inget datum publicerat'
+                      }
+                      value={rad?.nastaRapport?.datum ?? '–'}
+                    />
+                    <Row
+                      label="Insynshandel, 90 dagar"
+                      sub={
+                        rad?.insyn
+                          ? `${rad.insyn.koper} köp · ${rad.insyn.saljer} sälj${
+                              rad.insyn.vdNettoSek
+                                ? ` · VD netto ${kr(rad.insyn.vdNettoSek)}`
+                                : ''
+                            }`
+                          : 'Ingen insynshandel registrerad'
+                      }
+                      value={
+                        rad?.insyn ? (
+                          <span
+                            className={
+                              netto > 0
+                                ? 'text-[#26c185]'
+                                : netto < 0
+                                  ? 'text-[#fa6a22]'
+                                  : 'text-white/70'
+                            }
+                          >
+                            {netto > 0 ? '+' : ''}
+                            {kr(netto)}
+                          </span>
+                        ) : (
+                          '–'
+                        )
+                      }
+                    />
+                    <Row
+                      label="Blankat"
+                      sub={
+                        rad?.blankning && rad.blankning.antalPositioner > 0
+                          ? `${rad.blankning.antalPositioner} aktiva positioner${
+                              rad.blankning.senast ? ` · senast ${rad.blankning.senast}` : ''
+                            }`
+                          : 'Inga anmälda positioner över 0,5 %'
+                      }
+                      value={
+                        rad?.blankning && rad.blankning.andel > 0
+                          ? `${rad.blankning.andel.toFixed(2).replace('.', ',')} %`
+                          : '–'
+                      }
+                    />
+                  </div>
+                </GlassCard>
+              );
+            })}
+          </div>
+
+          <p className="px-1 pt-3 text-[12px] leading-relaxed text-white/35">
+            Insynshandel mäts över 90 dagar. Trettio dagar blir brus av en enskild transaktion,
+            trehundrasextiofem jämnar ut allt som faktiskt säger något. Blankningsandelen räknar
+            bara positioner över 0,5 %, eftersom det är där anmälningsplikten går.
+          </p>
+        </>
+      )}
+    </Block>
   );
 }

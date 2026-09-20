@@ -54,6 +54,9 @@ export type ReceiptItemRow = {
 }
 
 export type HoldingRow = {
+  borsapi_id: string | null;
+  borsapi_namn: string | null;
+  borsapi_uppdaterad: string | null;
   id: string;
   user_id: string;
   kind: HoldingKind;
