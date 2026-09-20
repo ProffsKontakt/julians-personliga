@@ -11,6 +11,18 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
   },
   manifest: '/manifest.webmanifest',
+  /*
+   * Utan deklarerade ikoner gissar webbläsaren på /favicon.ico och får 404.
+   * SVG för skarpa flikar på skrivbordet, PNG för iOS — apple-touch-icon
+   * stödjer inte SVG, så utan PNG:en blir hemskärmsikonen en tom ruta.
+   */
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
 };
 
 export const viewport: Viewport = {

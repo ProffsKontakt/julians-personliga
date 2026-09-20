@@ -83,7 +83,14 @@ function LoginInner() {
         { redirectTo: `${window.location.origin}/auth/callback?next=/konto` },
       );
       if (resetError) {
-        setError(resetError.message);
+        // Supabase tar emot ett fåtal återställningsmejl per timme och svarar
+        // 429 därefter. Rått felmeddelande säger ingenting om att man bara
+        // behöver vänta.
+        setError(
+          resetError.status === 429
+            ? 'För många återställningsförsök. Supabase släpper bara igenom ett fåtal mejl per timme — vänta en stund och försök igen.'
+            : resetError.message,
+        );
         setState('idle');
         return;
       }
